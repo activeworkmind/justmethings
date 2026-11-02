@@ -49,6 +49,29 @@ Every action is saved to SQLite immediately. Shortcuts are listed at the bottom 
 every change; corrections typed in *Photo Groups* are applied automatically after you save the workbook. If the
 workbook is open in Excel the sync waits and retries. Implemented in `kitchen/sync.py`.
 
+## Food Photo Studio - enhancement + upload-ready export (`start_studio.bat`)
+
+The last step before uploading to Swiggy / Zomato. A Streamlit app (`app/studio/`) that takes the reviewed photos
+(`final/`), cuts the dish out, puts it on a brand-themed table and writes **upload-ready files** to
+`upload_ready/<brand>/` (JPEG, 1:1, long edge 2048 px, **<= 1 MB**, no logo / badge / border overlays).
+
+* **Brand themes** (`studio/brands.py`): Biryani Rules (royal, dark, amber rim light), The Sunday Biryani (festive
+  teak, banana leaf, brass katori), The Day Meal (airy wood, jute runner, window light) - prompt, colour grade,
+  vignette and dietary-icon rules per brand.
+* **10 enhancements**, stackable in any order, each adjustable: dish isolation (rembg), AI theme background
+  (free HuggingFace API, with a local-template and an offline procedural fallback), grounded dual shadows,
+  natural sunlight (+ optional IC-Light), shahi rim & candlelight glow, angle / tilt / framing fix (dish at
+  74-78 % of the width), LAB "masala pop", steam, DSLR bokeh, brand badge & dietary icon - plus a brand colour grade.
+* **1-click brand master preset**, **Undo / Redo / Reset / before-after slider** per photo; the cut-out is cached
+  so lighting / framing / background tweaks are instant.
+* **Recipes**: every click is recorded; "Run recipe on folder" (Batch tab or `python -m studio.batch`) applies it to
+  a whole folder. Every export is logged in the database and shows in the Excel tracker (*Upload Ready* sheet,
+  *Ready to upload* column).
+* Engine: `studio/image_engine.py` (pure OpenCV / numpy / PIL), UI: `studio/app.py`, batch: `studio/batch.py`.
+
+The upload profile strips badges and borders because item photos are normally checked for logos / watermarks -
+confirm the current Swiggy / Zomato image rules in your partner app (ratio, minimum size) before the first upload.
+
 ## Setup (Windows, Python 3.12)
 
 ```powershell
@@ -79,6 +102,7 @@ Restore the data from Google Drive into the same folder layout (`assets/`, `work
 | `export-plain` | uncropped, upright, named copies per brand -> `ready_for_crop/` |
 | `db-dump` / `db-restore` | text export / rebuild of the SQLite database (`db/state.sql`) |
 | `status` | progress counts |
+| `python -m studio.batch --input <folder> --brand <key> --preset` | headless studio batch (keys: `biryani_rules`, `sunday_biryani`, `day_meal`) |
 | `classify` | optional CLIP hints (needs torch, see `app/requirements.txt`) |
 
 ## Repository layout

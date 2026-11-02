@@ -4,6 +4,9 @@
 /output/
 /final/
 /ready_for_crop/
+/upload_ready/
+/studio_cache/
+/studio_assets/
 /Image_Tracker.xlsx
 /~Image_Tracker.tmp.xlsx
 

@@ -11,6 +11,14 @@ tqdm==4.70.1
 typer==0.27.3
 pytest==9.2.0
 
+# --- Food Photo Studio (app/studio): 100 % free / open-source ---
+streamlit==1.66.1
+rembg[cpu]==2.0.86            # dish isolation (isnet-general-use / birefnet-general / u2net); models download on first use
+onnxruntime==1.31.1
+huggingface_hub==2.4.0        # free serverless inference for AI table backgrounds (optional token)
+gradio_client==2.7.2          # optional IC-Light neural relighting
+scipy
+
 # Optional - only for `python -m kitchen classify` (CLIP hints; the labelled photo groups decide the picks).
 # Install with:  pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
 #                pip install open_clip_torch==3.3.0
