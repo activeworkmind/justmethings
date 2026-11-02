@@ -1,0 +1,114 @@
+item_id,brand,category,item_name,diet,price_inr,clip_prompt,availability
+BR-001,biryani-rules,shahi-veg-paneer-biryanis,Kaju Paneer Shahi Biryani,veg,359,vegetarian biryani rice with paneer cubes and cashews,available
+BR-002,biryani-rules,shahi-veg-paneer-biryanis,Corn Mushroom Jugalbandi Biryani,veg,330,vegetarian biryani rice with sweet corn and mushrooms,available
+BR-003,biryani-rules,shahi-veg-paneer-biryanis,Paneer Nawabi Biryani,veg,330,vegetarian biryani rice with paneer cubes,available
+BR-004,biryani-rules,shahi-veg-paneer-biryanis,Chef's Hukum Veg Biryani,veg,359,vegetable dum biryani with mixed vegetables,available
+BR-005,biryani-rules,shahi-veg-paneer-biryanis,Mushroom Darbar Biryani,veg,330,mushroom biryani rice with mushrooms,available
+BR-006,biryani-rules,shahi-veg-paneer-biryanis,Hyderabadi Veg Dum Biryani,veg,339,hyderabadi vegetable dum biryani,available
+BR-007,biryani-rules,shahi-veg-paneer-biryanis,Royal Dawat Veg Dum Biryani,veg,359,royal vegetable dum biryani with mixed vegetables,available
+BR-008,biryani-rules,shahi-veg-paneer-biryanis,Kathal Badshah Biryani,veg,379,jackfruit biryani with jackfruit pieces,not_cooked
+BR-009,biryani-rules,solo-biryani-portions,Solo Veg Dum Biryani,veg,199,single portion vegetable dum biryani in a small container,available
+BR-010,biryani-rules,solo-biryani-portions,Solo Paneer Biryani,veg,210,single portion paneer biryani in a small container,available
+BR-011,biryani-rules,patakha-veg-starters,Veg Manchurian Patakha,veg,179,veg manchurian balls in dark sauce starter,available
+BR-012,biryani-rules,patakha-veg-starters,Chilli Paneer Tashan,veg,179,chilli paneer starter with capsicum and onion,available
+BR-013,biryani-rules,patakha-veg-starters,Spicy Cheese Dhamaka Balls,veg,159,crispy fried cheese balls starter,available
+BR-014,biryani-rules,meetha-darbar-desserts,Gulab Jamun,veg,70,gulab jamun in sugar syrup,available
+BR-015,biryani-rules,meetha-darbar-desserts,Gajar Ka Halwa,veg,90,gajar halwa carrot pudding dessert,available
+BR-016,biryani-rules,meetha-darbar-desserts,Chocolate Brownie (Eggless),veg,129,chocolate brownie dessert,not_cooked
+BR-017,biryani-rules,thandak-beverages,Chaas,veg,49,glass of chaas buttermilk,available
+DM-001,day-meal,veg-thalis-full-meals,Coconut Rice & Bhindi Full Meal,veg,429,thali with coconut rice dal bhindi raita chutney and phulkas,available
+DM-002,day-meal,veg-thalis-full-meals,Rajasthani Papad Curry Full Meal,veg,449,thali with jeera rice papad sabji dal fry raita and phulkas,available
+DM-003,day-meal,veg-thalis-full-meals,Punjabi Paneer & Dal Makhani Meal,veg,499,thali with jeera rice paneer butter masala dal makhani raita and phulkas,available
+DM-004,day-meal,veg-thalis-full-meals,Mushroom & Dal Full Meal,veg,499,thali with green mint rice mushroom gravy dal tadka raita and phulkas,available
+DM-005,day-meal,veg-thalis-full-meals,Cashew & Kofta Curry Full Meal,veg,549,thali with jeera rice kaju tomato curry kofta curry raita and parathas,available
+DM-006,day-meal,veg-thalis-full-meals,Chef's Special Paneer Full Meal,veg,599,thali with masala rice paneer dal makhani raita phulkas and gulab jamun,available
+DM-007,day-meal,veg-rice-meal-combos,Rajma & Jeera Rice Combo,veg,299,meal box with jeera rice rajma and cucumber raita,available
+DM-008,day-meal,veg-rice-meal-combos,Coconut Rice & Bhindi Combo,veg,319,meal box with coconut rice tomato dal and bhindi masala,available
+DM-009,day-meal,veg-rice-meal-combos,Paneer Butter Masala Rice Combo,veg,389,meal box with paneer butter masala jeera rice and dal tadka,available
+DM-010,day-meal,veg-rice-meal-combos,Palak Paneer & Moringa Rice Combo,veg,369,meal box with moringa rice palak paneer and curd,available
+DM-011,day-meal,veg-rice-meal-combos,Creamy Mushroom Rice Combo,veg,399,meal box with green rice creamy mushroom gravy and raita,available
+DM-012,day-meal,roti-paratha-meal-combos,Aloo Matar Gobhi Phulka Meal,veg,299,meal with plain phulkas aloo matar gobhi sabzi and dal tadka,available
+DM-013,day-meal,roti-paratha-meal-combos,Chana Masala Butter Phulka Meal,veg,319,meal with butter phulkas chana masala and boondi raita,available
+DM-014,day-meal,roti-paratha-meal-combos,Dum Aloo Ajwain Paratha Meal,veg,339,meal with ajwain parathas dum aloo and cucumber raita,available
+DM-015,day-meal,roti-paratha-meal-combos,Rajasthani Papad Ghee Phulka Meal,veg,349,meal with ghee phulkas rajasthani papad sabji and dal fry,not_cooked
+DM-016,day-meal,roti-paratha-meal-combos,Masala Bhindi Butter Phulka Meal,veg,329,meal with butter phulkas masala bhindi and dal fry,available
+DM-017,day-meal,roti-paratha-meal-combos,Paneer Makhani Butter Phulka Meal,veg,389,meal with butter phulkas paneer butter masala and dal tadka,available
+DM-018,day-meal,roti-paratha-meal-combos,Kadhai Paneer Butter Phulka Meal,veg,389,meal with butter phulkas kadhai paneer and boondi raita,available
+DM-019,day-meal,roti-paratha-meal-combos,Palak Paneer Ghee Phulka Meal,veg,379,meal with ghee phulkas palak paneer and dal fry,available
+DM-020,day-meal,roti-paratha-meal-combos,Paneer Bhurji Ajwain Paratha Meal,veg,399,meal with ajwain parathas paneer bhurji and cucumber raita,available
+DM-021,day-meal,roti-paratha-meal-combos,Kaju Tomato Ajwain Paratha Meal,veg,429,meal with ajwain parathas kaju tomato curry and dal makhani,available
+DM-022,day-meal,roti-paratha-meal-combos,Creamy Mushroom Butter Phulka Meal,veg,399,meal with butter phulkas creamy mushroom gravy and dal tadka,available
+DM-023,day-meal,roti-paratha-meal-combos,Chef Special Paneer Phulka Meal,veg,429,meal with ghee phulkas special paneer curry and boondi raita,available
+DM-024,day-meal,roti-paratha-meal-combos,Kofta Curry Ajwain Paratha Meal,veg,449,meal with ajwain parathas kofta curry and dal makhani,available
+DM-025,day-meal,roti-paratha-meal-combos,Garlic Corn Palak Roti Combo,veg,369,meal with ghee phulkas lehsun corn palak and cucumber raita,available
+DM-026,day-meal,roti-paratha-meal-combos,Kaddu Sabzi Phulka Meal,veg,299,meal with plain phulkas kaddu sabji and dal fry,not_cooked
+DM-027,day-meal,paneer-cashew-curries,Makhani Paneer Butter Masala,veg,279,paneer butter masala in creamy orange tomato gravy,available
+DM-028,day-meal,paneer-cashew-curries,Kadhai Paneer Masala,veg,279,kadhai paneer with capsicum and onion in thick masala,available
+DM-029,day-meal,paneer-cashew-curries,Chef Ki Pasand Paneer,veg,329,special paneer curry in rich gravy,available
+DM-030,day-meal,paneer-cashew-curries,Palak Paneer Classic,veg,279,palak paneer in green spinach gravy,available
+DM-031,day-meal,paneer-cashew-curries,Paneer Bhurji Favourite,veg,279,paneer bhurji scrambled paneer,available
+DM-032,day-meal,paneer-cashew-curries,Kaju Tamatar Curry,veg,299,cashew tomato curry kaju tamatar,available
+DM-033,day-meal,vegetable-mushroom-curries,Mix Veg,veg,219,mixed vegetable curry,available
+DM-034,day-meal,vegetable-mushroom-curries,Mushroom Ki Sabzi,veg,259,mushroom sabzi dry masala,available
+DM-035,day-meal,vegetable-mushroom-curries,Creamy Mushroom Curry,veg,289,creamy mushroom curry in white gravy,available
+DM-036,day-meal,vegetable-mushroom-curries,Bhindi Masala Favourite,veg,219,bhindi masala okra stir fry,available
+DM-037,day-meal,vegetable-mushroom-curries,Kofta Curry,veg,279,malai kofta curry with fried balls in gravy,available
+DM-038,day-meal,vegetable-mushroom-curries,Aloo Gobhi Matar Sabzi,veg,219,aloo gobi matar dry sabzi with potato cauliflower peas,available
+DM-039,day-meal,vegetable-mushroom-curries,Dum Aloo Masala,veg,229,dum aloo baby potatoes in spicy gravy,available
+DM-040,day-meal,vegetable-mushroom-curries,Lehsuni Palak Corn,veg,249,garlic spinach and corn sabzi,available
+DM-041,day-meal,vegetable-mushroom-curries,Kaddu Ki Desi Sabzi,veg,199,kaddu pumpkin sabzi,not_cooked
+DM-042,day-meal,vegetable-mushroom-curries,Rajasthani Papad Sabzi,veg,229,rajasthani papad ki sabzi curry,not_cooked
+DM-043,day-meal,dal-rajma-chana,Desi Tadka Dal,veg,189,yellow dal tadka with tempering,available
+DM-044,day-meal,dal-rajma-chana,Dal Fry Classic,veg,179,dal fry yellow lentils,available
+DM-045,day-meal,dal-rajma-chana,Dal Makhani Favourite,veg,239,dal makhani black lentils with cream,available
+DM-046,day-meal,dal-rajma-chana,Rajma Masala,veg,199,rajma masala red kidney beans curry,available
+DM-047,day-meal,dal-rajma-chana,Mango Dal (Seasonal),veg,219,mango dal yellow lentils with raw mango,available
+DM-048,day-meal,dal-rajma-chana,Tamatar Wali Dal,veg,179,tomato dal red lentils,available
+DM-049,day-meal,dal-rajma-chana,Chana Masala Favourite,veg,199,chana masala chickpea curry,available
+DM-050,day-meal,rice-flavoured-rice,Coconut Rice,veg,189,coconut rice white with grated coconut,available
+DM-051,day-meal,rice-flavoured-rice,Ghee Wala Jeera Rice,veg,169,jeera rice with cumin seeds,available
+DM-052,day-meal,rice-flavoured-rice,Kadi Patta Mirchi Rice,veg,199,curry leaf green chilli rice,available
+DM-053,day-meal,rice-flavoured-rice,Chatpata Masala Rice,veg,179,masala rice spiced rice,available
+DM-054,day-meal,rice-flavoured-rice,Plain Steamed Rice,veg,129,plain white steamed rice,available
+DM-055,day-meal,rice-flavoured-rice,Moringa (Sahjan) Rice,veg,199,moringa drumstick leaf green rice,available
+DM-056,day-meal,fresh-rotis-parathas,Plain Phulka Roti (2 pcs),veg,39,two plain phulka rotis,available
+DM-057,day-meal,fresh-rotis-parathas,Butter Wali Phulka Roti (2 pcs),veg,49,two butter phulka rotis,available
+DM-058,day-meal,fresh-rotis-parathas,Ghee Wali Phulka Roti (2 pcs),veg,59,two ghee phulka rotis,available
+DM-059,day-meal,fresh-rotis-parathas,Butter / Ghee Phulka Roti (2 pcs),veg,59,two buttered phulka rotis,available
+DM-060,day-meal,fresh-rotis-parathas,Plain Paratha (1 pc),veg,49,single plain paratha,available
+DM-061,day-meal,fresh-rotis-parathas,Ajwain Wala Paratha (1 pc),veg,59,single ajwain paratha,available
+DM-062,day-meal,raita-fresh-curd,Plain Dahi (100 g),veg,49,small bowl of plain curd dahi,available
+DM-063,day-meal,raita-fresh-curd,Boondi Wala Raita (100 g),veg,59,small bowl of boondi raita,available
+DM-064,day-meal,raita-fresh-curd,Kheera Pyaaz Raita (100 g),veg,59,small bowl of cucumber onion raita,available
+DM-065,day-meal,raita-fresh-curd,Kheera Raita (100 g),veg,59,small bowl of cucumber raita,available
+DM-066,day-meal,raita-fresh-curd,Plain Raita (100 g),veg,49,small bowl of plain raita,available
+DM-067,day-meal,artisanal-chutneys,Kundru (Ivy Gourd) Chutney (40 g),veg,49,small cup of green chutney,available
+DM-068,day-meal,artisanal-chutneys,Tomato Chutney (40 g),veg,39,small cup of red tomato chutney,available
+DM-069,day-meal,artisanal-chutneys,Turai (Ridge Gourd) Chutney (40 g),veg,49,small cup of green ridge gourd chutney,available
+DM-070,day-meal,traditional-desserts,Meetha Mood Gulab Jamun (2 pcs),veg,79,two gulab jamun in syrup,available
+DM-071,day-meal,traditional-desserts,Gajar Halwa Treat (120 g Seasonal),veg,119,gajar halwa carrot pudding dessert,available
+DM-072,day-meal,traditional-desserts,Chocolate Brownie (Eggless),veg,129,chocolate brownie dessert,available
+SB-001,sunday-biryani,signature-chicken-biryanis,Sunday Special Chicken Biryani,non-veg,359,chicken dum biryani with chicken pieces,available
+SB-002,sunday-biryani,signature-chicken-biryanis,Chicken Fry Biryani,non-veg,359,biryani with fried chicken pieces,available
+SB-003,sunday-biryani,signature-chicken-biryanis,Chicken Tangdi Kebab Biryani,non-veg,379,biryani with chicken tangdi drumstick kebab,not_cooked
+SB-004,sunday-biryani,signature-chicken-biryanis,Boneless Chicken Biryani,non-veg,389,biryani with boneless chicken pieces,available
+SB-005,sunday-biryani,nawabi-mutton-biryani,Nawabi Mutton Biryani,non-veg,690,mutton biryani with mutton pieces,not_cooked
+SB-006,sunday-biryani,classic-egg-biryani,Egg Biryani,egg,319,biryani with boiled eggs,available
+SB-007,sunday-biryani,solo-biryani-portions,Solo Chicken Dum Biryani,non-veg,199,single portion chicken biryani in a small container,available
+SB-008,sunday-biryani,solo-biryani-portions,Solo Chicken Fry Biryani,non-veg,199,single portion fried chicken biryani in a small container,available
+SB-009,sunday-biryani,solo-biryani-portions,Solo Boneless Chicken Biryani,non-veg,210,single portion boneless chicken biryani in a small container,available
+SB-010,sunday-biryani,veg-paneer-dum-biryanis,Shahi Kaju Paneer Biryani,veg,329,vegetarian biryani rice with paneer cubes and cashews,available
+SB-011,sunday-biryani,veg-paneer-dum-biryanis,Corn & Mushroom Biryani,veg,329,vegetarian biryani rice with sweet corn and mushrooms,available
+SB-012,sunday-biryani,veg-paneer-dum-biryanis,Paneer Biryani,veg,329,vegetarian biryani rice with paneer cubes,available
+SB-013,sunday-biryani,veg-paneer-dum-biryanis,Chef's Special Veg Biryani,veg,349,vegetable dum biryani with mixed vegetables,available
+SB-014,sunday-biryani,veg-paneer-dum-biryanis,Mushroom Biryani,veg,329,mushroom biryani rice with mushrooms,available
+SB-015,sunday-biryani,veg-paneer-dum-biryanis,Hyderabadi Veg Dum Biryani,veg,329,hyderabadi vegetable dum biryani,available
+SB-016,sunday-biryani,veg-paneer-dum-biryanis,Royal Veg Dum Biryani,veg,349,royal vegetable dum biryani with mixed vegetables,available
+SB-017,sunday-biryani,veg-paneer-dum-biryanis,Jackfruit Biryani,veg,359,jackfruit biryani with jackfruit pieces,available
+SB-018,sunday-biryani,crispy-veg-starters,Veg Manchurian,veg,149,veg manchurian balls in dark sauce starter,available
+SB-019,sunday-biryani,crispy-veg-starters,Chilli Paneer,veg,169,chilli paneer starter with capsicum and onion,available
+SB-020,sunday-biryani,crispy-veg-starters,Cheese Balls,veg,199,crispy fried cheese balls starter,available
+SB-021,sunday-biryani,royal-desserts,Gulab Jamun,veg,99,gulab jamun in sugar syrup,available
+SB-022,sunday-biryani,royal-desserts,Carrot Halwa,veg,120,gajar halwa carrot pudding dessert,available
+SB-023,sunday-biryani,royal-desserts,Chocolate Brownie (Contains Egg),egg,129,chocolate brownie dessert,not_cooked
+SB-024,sunday-biryani,refreshing-beverages,Chilled Buttermilk,veg,69,glass of chaas buttermilk,available

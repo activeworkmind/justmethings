@@ -1,0 +1,16 @@
+# Cloud Kitchen image pipeline - Python 3.12, Windows
+rawpy==0.28.0
+pillow==13.0.0
+opencv-python-headless==5.0.0.93
+imagehash==4.3.2
+numpy==2.5.4
+pandas==3.1.0
+pdfplumber==0.11.10
+openpyxl==3.1.5
+tqdm==4.70.1
+typer==0.27.3
+pytest==9.2.0
+
+# Optional - only for `python -m kitchen classify` (CLIP hints; the labelled photo groups decide the picks).
+# Install with:  pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
+#                pip install open_clip_torch==3.3.0

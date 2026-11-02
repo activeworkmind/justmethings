@@ -1,0 +1,43 @@
+# ---- data & images: kept on Google Drive, never in git ----
+/assets/
+/work/
+/output/
+/final/
+/ready_for_crop/
+/Image_Tracker.xlsx
+/~Image_Tracker.tmp.xlsx
+
+# any image / video / spreadsheet that slips in
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.tif
+*.tiff
+*.bmp
+*.heic
+*.dng
+*.cr2
+*.nef
+*.arw
+*.mov
+*.mp4
+*.xlsx
+
+# ---- python ----
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# ---- SQLite runtime files (a text export lives in db/state.sql) ----
+*.db
+*.db-wal
+*.db-shm
+
+# ---- editor / OS ----
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
