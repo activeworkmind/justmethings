@@ -17,7 +17,7 @@ EMBEDDINGS = WORK / "scores.npz"
 SELECTION = WORK / "selection.json"
 OVERRIDES = WORK / "overrides.csv"  # optional: item_id,photo_id  (pin a photo)
 REVIEW_STATE = WORK / "review_state.json"   # GUI decisions (crop/rotate/enhance/name/status)
-FINAL = ROOT / "final"                      # hand-reviewed deliverables
+FINAL = ROOT / "final_output"                      # hand-reviewed deliverables
 
 RAW_EXT = {".dng", ".cr2", ".cr3", ".nef", ".arw", ".raf", ".rw2", ".orf"}
 IMG_EXT = {".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff", ".bmp", ".heic"}

@@ -51,7 +51,7 @@ def save(key: str, s: dict) -> None:
 
 def mark_deleted(key: str) -> str | None:
     """Remove a slot from the list for good: status 'deleted', its photo is never suggested again for this item.
-    Returns the final/ file that existed (so the caller can delete it), if any."""
+    Returns the final_output/ file that existed (so the caller can delete it), if any."""
     with closing(db.connect()) as con:
         row = con.execute("SELECT * FROM slots WHERE slot_key=?", (key,)).fetchone()
         if row is None:
@@ -64,10 +64,12 @@ def mark_deleted(key: str) -> str | None:
         return row["final_path"]
 
 
-def mark_exported(key: str, path: str, enhanced: bool) -> None:
+def mark_exported(key: str, path: str, enhanced: bool, valid: bool = True) -> None:
+    """Record the file written for a slot. valid=False: the decision changed while the file was being rendered -
+    the path is remembered (so a stale file can be cleaned up) but the slot stays 'not exported' and is saved again."""
     with closing(db.connect()) as con:
-        con.execute("UPDATE slots SET exported=1,exported_enhanced=?,final_path=?,exported_at=? WHERE slot_key=?",
-                    (int(enhanced), path, time.time(), key))
+        con.execute("UPDATE slots SET exported=?,exported_enhanced=?,final_path=?,exported_at=? WHERE slot_key=?",
+                    (int(valid), int(enhanced), path, time.time(), key))
         con.commit()
 
 

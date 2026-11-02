@@ -114,7 +114,7 @@ def delete_slot(key: str) -> dict:
     """Delete one photo slot for good (the review GUI's Delete button).
 
     * database: slot status 'deleted' + the photo is excluded for that dish (never suggested again)
-    * files: the copies in output/, ready_for_crop/ and final/ are removed
+    * files: the copies in output/, ready_for_crop/ and final_output/ are removed
     * the list: the pick is dropped from selection.json and ready_for_crop/_index.csv
     The original photo in assets/ and its 1 MB copy in work/downscaled/ are never touched."""
     item_id, rank = key.split(":")

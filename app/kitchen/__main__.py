@@ -67,7 +67,7 @@ def gui_cmd():
 
 @app.command("finalize")
 def finalize_cmd(workers: int = 3):
-    """5. Render all approved GUI slots into final/<brand>/<category>/ (<=1 MB each), then update Excel."""
+    """5. Render all approved GUI slots into final_output/<brand>/<category>/ (<=1 MB each), then update Excel."""
     from . import excel, finalize
     print(finalize.run(workers))
     print(excel.run())

@@ -139,7 +139,7 @@ def run() -> dict:
 
     # ---------- Photo List (app-managed: selected photos + review / saved / enhanced status) ----------
     _head(ws_pl, ["Item ID", "Item name", "Rank", "File name", "Photo group", "Match confidence", "Review status",
-                  "Saved to final/", "Enhanced & saved", "Final file", "Key", "Original camera file"],
+                  "Saved to final_output/", "Enhanced & saved", "Final file", "Key", "Original camera file"],
           [10, 34, 6, 40, 10, 18, 14, 14, 16, 58, 10, 24])
     r = 2
     for it in items:
@@ -170,7 +170,7 @@ def run() -> dict:
 
     # ---------- Menu Items ----------
     _head(ws_menu, ["Item ID", "Brand", "Category", "Item name", "Diet", "Price (INR)", "Availability",
-                    "Photos selected", "Photo available?", "Best match", "Approved photos", "Saved to final/",
+                    "Photos selected", "Photo available?", "Best match", "Approved photos", "Saved to final_output/",
                     "Enhanced & saved", "Notes"],
           [10, 16, 26, 38, 9, 10, 15, 11, 18, 18, 11, 11, 12, 40])
     for i, it in enumerate(items, 2):
@@ -243,7 +243,7 @@ def run() -> dict:
     ws["A1"] = "Cloud Kitchen - Image Tracker"
     ws["A1"].font = Font(name=F, bold=True, size=14)
     heads = ["Brand", "Total items", "Cooked", "Not cooked yet", "Photo available", "Photo needed",
-             "Approved photos", "Saved to final/", "Enhanced & saved"]
+             "Approved photos", "Saved to final_output/", "Enhanced & saved"]
     for c, h in enumerate(heads, 1):
         cell = ws.cell(3, c, h)
         cell.font, cell.fill, cell.border = Font(name=F, bold=True, color="FFFFFF", size=10), HEAD, BORDER

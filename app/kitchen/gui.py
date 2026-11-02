@@ -4,11 +4,12 @@ One card per output slot (menu item x rank). Every decision is saved to the SQLi
 (table `slots`) and the Excel tracker is kept in sync automatically (see sync.py), so closing the
 window never loses work."""
 import json
+import os
+import queue
 import re
-import subprocess
-import sys
-import threading
+import time
 import tkinter as tk
+from pathlib import Path
 from tkinter import messagebox
 
 import cv2
@@ -16,6 +17,7 @@ import numpy as np
 from PIL import Image, ImageTk
 
 from . import catalog, config, db, enhance, finalize, select, slotstore
+from .saver import Saver
 from .sync import Syncer
 
 ASPECTS = {"free": None, "1:1": 1.0, "4:3": 4 / 3, "3:4": 3 / 4}   # free-style is the default
@@ -23,7 +25,7 @@ HANDLE = 14
 MIN_PX = 60
 TILT_MAX = 15.0
 BG = "#1b1b1b"
-HELP = ("Enter/Space = approve + next  |  <- -> = prev/next  |  X = reject (kept, marked)  |  "
+HELP = ("Enter/Space = approve + SAVE the photo to final_output + next  |  <- -> = prev/next  |  X = reject (kept, marked)  |  "
         "Del = DELETE (removes from list + folders)  |  R / Shift+R = rotate 90  |  "
         "TILT: slider, or , . = 0.5 deg, < > = 0.1 deg, 0 = reset, L = auto-level, G = level grid  |  "
         "E = enhance on/off  |  A = aspect  |  [ ] = other photo  |  N = edit name  |  P = preview  |  "
@@ -47,12 +49,16 @@ class App:
         self.state = slotstore.load_all()
         self._build_keys()
         self.cache_base = {}
-        self.exporting = False
         self._cutouts = {}                                  # dish cut-outs for the Look preview (per crop)
         self._scale_busy = False
         self._tilting = False
         self._tilt_job = None
         self.sync = Syncer()
+        self.saver = Saver()
+        self._save_msg = ""
+        for key, s in self.state.items():                  # catch up: approved earlier but never written to final_output/
+            if s["status"] == "approved" and not s["exported"]:
+                self.saver.submit(key)
 
         self._build_ui()
         self.idx = next((i for i, k in enumerate(self.keys)
@@ -127,12 +133,14 @@ class App:
                           ("Rotate left", lambda: self.rotate(-1)),
                           ("Rotate right", lambda: self.rotate(1)), ("Other photo  [", lambda: self.alt(-1)),
                           ("]", lambda: self.alt(1)), ("Preview (P)", self.preview),
-                          ("Export approved -> final/", self.export)]:
+                          ("Open final_output folder", self.open_folder)]:
             danger = text.startswith("DELETE")
             tk.Button(btns, text=text, command=cmd, padx=8, bg="#b3261e" if danger else None,
                       fg="white" if danger else None).pack(side="left", padx=3)
         self.excel_var = tk.StringVar(value=self.sync.status)
         tk.Label(btns, textvariable=self.excel_var, bg=BG, fg="#8ab4f8", font=("Segoe UI", 9)).pack(side="right")
+        self.save_var = tk.StringVar(value="")
+        tk.Label(btns, textvariable=self.save_var, bg=BG, fg="#7fd18b", font=("Segoe UI", 9, "bold")).pack(side="right", padx=12)
         tk.Label(r, text=HELP, bg=BG, fg="#777", font=("Segoe UI", 9), anchor="w",
                  wraplength=1500, justify="left").pack(fill="x", padx=10, pady=(2, 8))
 
@@ -153,7 +161,38 @@ class App:
         self.excel_var.set(self.sync.status)
         if self.sync.take_applied():
             self.reload_selection()
+        self._collect_saves()
         self.root.after(1000, self._tick)
+
+    # ---------- saving the final photos (background) ----------
+    def _collect_saves(self):
+        """Read the saver's finished jobs (main thread only) and show what happened."""
+        while True:
+            try:
+                key, res, err = self.saver.done.get_nowait()
+            except queue.Empty:
+                break
+            if err:
+                self._save_msg = f"SAVE FAILED {key}: {err[:100]}"
+                continue
+            fresh = slotstore.load_all().get(key)
+            if fresh and key in self.state:
+                for f in ("exported", "exported_enhanced", "final_path"):
+                    self.state[key][f] = fresh[f]
+            if res["status"] == "saved":
+                self._save_msg = f"Saved {Path(res['path']).name} ({res['bytes'] / 1000:.0f} KB)"
+                self.sync.mark_dirty()                       # Excel: 'Saved to final_output/' column
+            elif res["status"] == "removed":
+                self._save_msg = f"Removed the saved file of {key}"
+                self.sync.mark_dirty()
+            if key == self.key:
+                self.update_status()
+        busy = self.saver.busy
+        self.save_var.set(f"Saving {busy}..." if busy else self._save_msg)
+
+    def open_folder(self):
+        config.FINAL.mkdir(parents=True, exist_ok=True)
+        os.startfile(config.FINAL)                           # Windows Explorer
 
     def reload_selection(self):
         """Corrections from Excel were applied: reload picks; untouched pending slots follow the new picks."""
@@ -173,6 +212,12 @@ class App:
 
     def on_close(self):
         self.commit()
+        self.root.title("Finishing saves...")
+        t0 = time.time()
+        while self.saver.busy and time.time() - t0 < 180:      # let queued photos finish writing
+            self.root.update()
+            time.sleep(0.1)
+        self._collect_saves()
         self.root.title("Syncing Excel...")
         self.root.update_idletasks()
         try:
@@ -235,6 +280,8 @@ class App:
             slotstore.save(self.key, self.slot)
             self.slot["exported"] = slotstore.is_exported(self.key)   # save() resets it when the decision changed
             self.sync.mark_dirty()                          # DB changed -> Excel follows automatically
+            if self.slot["status"] in ("approved", "rejected"):
+                self.saver.submit(self.key)                 # write (or remove) the final file in the background
         self.update_status()
 
     def update_status(self):
@@ -284,13 +331,13 @@ class App:
         self.next()
 
     def delete_current(self):
-        """Remove this photo from the list and delete its files (output/, ready_for_crop/, final/)."""
+        """Remove this photo from the list and delete its files (output/, ready_for_crop/, final_output/)."""
         it = self.items[self.key.split(":")[0]]
         if not messagebox.askyesno(
                 "Delete this photo?",
                 f"{it['item_name']}  -  photo {self.key.split(':')[1]}\n\n"
                 "This removes it from the review list and deletes its copies in output/, ready_for_crop/ and "
-                "final/. It will not be suggested again for this dish.\n\n"
+                "final_output/. It will not be suggested again for this dish.\n\n"
                 "The original photo in assets/ is NOT touched.\n\n"
                 "(Use Reject instead if you only want to mark it as not good.)",
                 icon="warning", default="no"):
@@ -417,29 +464,6 @@ class App:
         lbl.pack()
         win.bind("<Escape>", lambda e: win.destroy())
         win.focus_set()
-
-    def export(self):
-        if self.exporting:
-            return
-        self.commit()
-        self.exporting = True
-        self.status_var.set("exporting...")
-
-        def work():
-            p = subprocess.run([sys.executable, "-m", "kitchen", "finalize"], capture_output=True, text=True,
-                               cwd=str(config.ROOT / "app"))
-            lines = [l for l in p.stdout.strip().splitlines() if l.strip()]
-            out = "\n".join(lines[-2:]) or p.stderr[-400:]
-            self.root.after(0, lambda: self.after_export("Export finished", f"{out}\n\nFolder: {config.FINAL}"))
-        threading.Thread(target=work, daemon=True).start()
-
-    def after_export(self, title, text):
-        self.exporting = False
-        self.state = slotstore.load_all()                  # pick up exported / enhanced flags
-        self.slot = self.state.get(self.key, self.slot)
-        self.sync.mark_dirty()
-        self.update_status()
-        messagebox.showinfo(title, text)
 
     # ---------- view / crop geometry ----------
     def rebuild_view(self):

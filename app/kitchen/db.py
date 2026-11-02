@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS slots (
     enhance    INTEGER NOT NULL DEFAULT 1,        -- decision: apply daylight enhancement?
     look       TEXT,                              -- JSON list of studio steps (brand background, shadows, ...) or NULL
     reviewed_at REAL,
-    exported   INTEGER NOT NULL DEFAULT 0,        -- final/ file written for the current decision
+    exported   INTEGER NOT NULL DEFAULT 0,        -- final_output/ file written for the current decision
     exported_enhanced INTEGER NOT NULL DEFAULT 0, -- that file was enhanced
     final_path TEXT,
     exported_at REAL

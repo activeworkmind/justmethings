@@ -21,7 +21,8 @@ labels/photo_groups.csv   ranges of photos = one dish (hand-labelled, correctabl
    |  select      top 3 photos per cooked item                 -> output/, ready_for_crop/
    v
 review GUI        crop (free-form) / rotate / tilt / enhance? / rename / approve   -> SQLite (work/state.db)
-   |  finalize    render from the original RAW, <= 1 MB       -> final/<brand>/<category>/
+   |  Approve     saves the final photo straight away (from the original RAW, <= 1 MB)
+   v            -> final_output/<brand>/<category>/<name>.jpg
    v
 Image_Tracker.xlsx   kept in sync with the database automatically (both directions)
 ```
@@ -39,6 +40,12 @@ Free-form crop (drag / corners / wheel; `A` cycles 1:1, 4:3, 3:4), 90 deg rotati
 0.1 steps, level grid, auto-level), enhance on/off, rename, other-photo cycling, preview, approve / reject.
 Every action is saved to SQLite immediately. Shortcuts are listed at the bottom of the window.
 
+**Approve saves the photo.** *Approve + Next* writes the final file to `final_output/<brand>/<category>/<name>.jpg`
+in the background (crop, rotation, tilt, look, <= 1 MB, the name you typed), so the next photo opens instantly and the
+green status in the bottom bar tells you when it is written ("Saved ... KB"). Change an approved photo, rename it or reject
+it and the file follows: replaced, renamed or removed. Anything approved earlier but not yet written is saved when the
+app starts, and closing the window waits for pending saves. "Open final_output folder" shows the result.
+
 **Look... (brand styling)** - per photo, optional. One small dialog with a checkbox per enhancement: brand table
 background (Biryani Rules = dark rosewood, Sunday Biryani = festive teak, Day Meal = airy wood + jute), grounded
 shadows, natural sunlight, rim / candlelight glow, straighten & frame, masala colour pop, steam, background blur,
@@ -50,8 +57,8 @@ with the free HuggingFace API when you set an `HF_TOKEN`). The badge is off by d
 reject logos on item photos, so confirm their current image rules before using it.
 
 **Reject vs Delete** - *Reject* (`X`) keeps the photo in the list marked "Rejected" (it is not exported to
-`final/`). *Delete* (`Del`, red button, asks to confirm) removes it from the list **and** deletes its copies in
-`output/`, `ready_for_crop/` and `final/`; that photo is never suggested again for that dish. Ranks stay stable
+`final_output/`). *Delete* (`Del`, red button, asks to confirm) removes it from the list **and** deletes its copies in
+`output/`, `ready_for_crop/` and `final_output/`; that photo is never suggested again for that dish. Ranks stay stable
 (delete rank 2 and ranks 1 and 3 keep their files). Originals in `assets/` are never touched.
 
 ### Excel <-> database sync
@@ -84,7 +91,7 @@ Restore the data from Google Drive into the same folder layout (`assets/`, `work
 | `scan` / `downscale` / `sheets` | register, downscale (<= 1 MB) and contact-sheet the photos |
 | `select` | pick the top-3 photos per cooked item from the labelled groups |
 | `gui` | the review app (or just `start.bat`) |
-| `finalize` | render approved slots to `final/` (also the "Export approved" button in the app) |
+| `finalize` | re-render every approved slot to `final_output/` (the app already does this by itself on approve) |
 | `excel` / `apply-excel` | manual sync (normally automatic) |
 | `export-plain` | uncropped, upright, named copies per brand -> `ready_for_crop/` |
 | `db-dump` / `db-restore` | text export / rebuild of the SQLite database (`db/state.sql`) |
@@ -102,4 +109,4 @@ doc/           design notes
 start.bat      opens the review app
 ```
 
-Not in git: `assets/`, `work/`, `output/`, `final/`, `ready_for_crop/`, `Image_Tracker.xlsx`, `.venv/`.
+Not in git: `assets/`, `work/`, `output/`, `final_output/`, `ready_for_crop/`, `Image_Tracker.xlsx`, `.venv/`.

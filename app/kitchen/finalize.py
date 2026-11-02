@@ -1,11 +1,13 @@
-"""Render the hand-reviewed slots (from the GUI) into final/<brand>/<category>/<name>.jpg.
+"""Render the hand-reviewed slots (from the GUI) into final_output/<brand>/<category>/<name>.jpg.
 
 Each approved slot is re-developed from the ORIGINAL file, rotated/tilted, cropped exactly as
 chosen in the GUI (crop is stored as fractions, so it is resolution-independent), optionally
 given the daylight touch, and encoded <= 1 MB. Every export is recorded in the SQLite `slots`
 table (exported / exported_enhanced / final_path), which the Excel tracker reads."""
+import json
 import os
 from concurrent.futures import ProcessPoolExecutor
+from contextlib import closing
 from pathlib import Path
 
 import cv2
@@ -81,6 +83,50 @@ def _export_one(job):
         return out, None
     except Exception as e:
         return out, f"{type(e).__name__}: {e}"
+
+
+def _decision(s: dict) -> tuple:
+    """Everything that changes how the final file looks or is named."""
+    return (s["photo_id"], s["status"], s["name"], s["rot"], s["tilt"], tuple(s["crop"] or ()), bool(s["enhance"]),
+            json.dumps(s.get("look") or []))
+
+
+def _remove(path) -> bool:
+    try:
+        if path and os.path.exists(path):
+            os.remove(path)
+            return True
+    except OSError:
+        pass
+    return False
+
+
+def export_slot(key: str) -> dict:
+    """Bring the file in final_output/ in line with ONE slot's current decision. Called in the background as soon as
+    you approve / change / reject a photo:  approved -> file written (<= 1 MB) under its name;  renamed -> old file
+    removed;  rejected / deleted -> file removed.  Safe to call repeatedly (an up-to-date file is left alone)."""
+    s = slotstore.load_all().get(key)
+    if s is None:
+        return {"status": "missing"}
+    it = next((i for i in catalog.load() if i["item_id"] == key.split(":")[0]), None)
+    if it is None or it["availability"] != "available" or s["status"] != "approved":
+        removed = _remove(s["final_path"])
+        if s["exported"] or s["final_path"]:
+            slotstore.clear_export(key)
+        return {"status": "removed" if removed else "nothing to save"}
+    out = str(config.FINAL / it["brand"] / it["category"] / f"{s['name']}.jpg")
+    if s["exported"] and s["final_path"] == out and os.path.exists(out):
+        return {"status": "up to date", "path": out}
+    if s["final_path"] and s["final_path"] != out:
+        _remove(s["final_path"])                                         # renamed: drop the old file
+    with closing(db.connect()) as con:
+        src = con.execute("SELECT path FROM files WHERE id=?", (s["photo_id"],)).fetchone()["path"]
+    path, err = _export_one((src, {**s, "_brand": brand_key(it["brand"]) if s["look"] else None}, out))
+    if err:
+        raise RuntimeError(err)
+    now = slotstore.load_all().get(key)                                  # did you change it again while we rendered?
+    slotstore.mark_exported(key, path, bool(s["enhance"] or s["look"]), valid=bool(now) and _decision(now) == _decision(s))
+    return {"status": "saved", "path": path, "bytes": os.path.getsize(path)}
 
 
 def run(workers: int = 3) -> dict:

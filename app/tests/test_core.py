@@ -117,6 +117,33 @@ def test_delete_of_an_unsaved_slot_is_rejected(tmp_db):
         slotstore.mark_deleted("BR-001:1")
 
 
+def test_approving_saves_the_final_file_and_keeps_it_in_step(tmp_db, tmp_path, monkeypatch):
+    from kitchen import finalize
+    monkeypatch.setattr(config, "FINAL", tmp_path / "final_output")
+    photo = tmp_path / "p.jpg"
+    Image.fromarray(np.random.default_rng(0).integers(0, 255, (300, 400, 3), dtype=np.uint8)).save(photo)
+    with closing(db.connect()) as con:
+        con.execute("INSERT INTO files(id,path,kind,size,status) VALUES('abc',?,'image',1,'downscaled')", (str(photo),))
+        con.commit()
+    slot = {"photo_id": "abc", "status": "approved", "name": "MY-name_1", "rot": 0, "tilt": 0.0,
+            "crop": [0.1, 0.1, 0.9, 0.9], "aspect": "free", "enhance": True}
+    folder = tmp_path / "final_output" / "biryani-rules" / "shahi-veg-paneer-biryanis"
+
+    slotstore.save("BR-001:1", slot)
+    res = finalize.export_slot("BR-001:1")
+    assert res["status"] == "saved" and (folder / "MY-name_1.jpg").stat().st_size <= config.MAX_BYTES
+    assert slotstore.load_all()["BR-001:1"]["exported"]
+    assert finalize.export_slot("BR-001:1")["status"] == "up to date"             # nothing changed -> not re-rendered
+
+    slotstore.save("BR-001:1", {**slot, "name": "Renamed_1"})                    # new name -> old file replaced
+    assert finalize.export_slot("BR-001:1")["status"] == "saved"
+    assert sorted(p.name for p in folder.glob("*.jpg")) == ["Renamed_1.jpg"]
+
+    slotstore.save("BR-001:1", {**slot, "name": "Renamed_1", "status": "rejected"})   # rejected -> file removed
+    assert finalize.export_slot("BR-001:1")["status"] == "removed" and not list(folder.glob("*.jpg"))
+    assert not slotstore.load_all()["BR-001:1"]["exported"]
+
+
 def test_db_dump_and_restore(tmp_db, tmp_path):
     slotstore.save("BR-001:1", {"photo_id": "abc", "status": "pending", "name": "n", "rot": 0, "tilt": 0.0,
                                 "crop": None, "aspect": "free", "enhance": True})
