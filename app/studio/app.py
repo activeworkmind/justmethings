@@ -1,4 +1,4 @@
-"""Food Photo Studio - Streamlit UI.   Launch:  start_studio.bat   (or: streamlit run studio/app.py from the app folder)
+"""Food Photo Studio - Streamlit UI.   Launch:  start.bat -> 2   (or: streamlit run studio/app.py from the app folder)
 
 Studio tab : load photos -> brand theme -> click enhancements (any order) or the 1-click brand preset ->
              undo / redo / reset / before-after compare -> save an upload-ready file.

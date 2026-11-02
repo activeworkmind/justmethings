@@ -90,6 +90,27 @@ def apply_excel_cmd():
     print(excel.run())
 
 
+@app.command("retag")
+def retag_cmd(apply: bool = typer.Option(False, "--apply", help="make the changes (a backup is taken first)")):
+    """Correct brand tags from the table mat (green = Biryani Rules, royal = Sunday Biryani, plain = Day Meal)."""
+    from . import retag
+    with db.connect() as con:
+        plan = retag.plan(con)
+    for r in plan:
+        if r["status"] != "unchanged":
+            print(f"{r['group']:6} {r['mat'] or '-':6} photos {len(r['photos']):3}  {r['status']:42} "
+                  f"{','.join(r['before']) or '-'}  ->  {','.join(r['after']) or '-'}")
+    print(f"{sum(1 for r in plan if r['status'] == 'unchanged')} groups already correct")
+    if apply:
+        res = retag.apply()
+        print(f"moved {len(res['moved'])} saved decisions, dropped {len(res['dropped'])}; backup: {res['backup']}")
+        for old, new, st, a, b in res["moved"]:
+            if old != new or a != b:
+                print(f"  {old:9} -> {new:9} {st:9} {a}  =>  {b}")
+        for key, st, name in res["dropped"]:
+            print(f"  DROPPED {key} ({st}) {name}")
+
+
 @app.command("db-dump")
 def db_dump_cmd():
     """Export the database to db/state.sql (text, versioned in git)."""

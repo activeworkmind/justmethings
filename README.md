@@ -34,7 +34,7 @@ Image_Tracker.xlsx   kept in sync with the database automatically (both directio
 * **Enhancement** is photographic only (exposure, daylight warmth, shadow lift, local contrast, sharpen). Food is
   never added, removed or repainted.
 
-### Review GUI (`start_review.bat`)
+### Review GUI (`start.bat` -> 1)
 Free-form crop (drag / corners / wheel; `A` cycles 1:1, 4:3, 3:4), 90 deg rotation, **tilt slider** (-15..+15,
 0.1 steps, level grid, auto-level), enhance on/off, rename, other-photo cycling, preview, approve / reject.
 Every action is saved to SQLite immediately. Shortcuts are listed at the bottom of the window.
@@ -49,7 +49,7 @@ Every action is saved to SQLite immediately. Shortcuts are listed at the bottom 
 every change; corrections typed in *Photo Groups* are applied automatically after you save the workbook. If the
 workbook is open in Excel the sync waits and retries. Implemented in `kitchen/sync.py`.
 
-## Food Photo Studio - enhancement + upload-ready export (`start_studio.bat`)
+## Food Photo Studio - enhancement + upload-ready export (`start.bat` -> 2)
 
 The last step before uploading to Swiggy / Zomato. A Streamlit app (`app/studio/`) that takes the reviewed photos
 (`final/`), cuts the dish out, puts it on a brand-themed table and writes **upload-ready files** to
@@ -96,8 +96,8 @@ Restore the data from Google Drive into the same folder layout (`assets/`, `work
 |---|---|
 | `scan` / `downscale` / `sheets` | register, downscale (<= 1 MB) and contact-sheet the photos |
 | `select` | pick the top-3 photos per cooked item from the labelled groups |
-| `gui` | review app (or `start_review.bat`) |
-| `finalize` | render approved slots to `final/` (or `export_final.bat`) |
+| `gui` | review app (or `start.bat` -> 1) |
+| `finalize` | render approved slots to `final/` (or `start.bat` -> 3) |
 | `excel` / `apply-excel` | manual sync (normally automatic) |
 | `export-plain` | uncropped, upright, named copies per brand -> `ready_for_crop/` |
 | `db-dump` / `db-restore` | text export / rebuild of the SQLite database (`db/state.sql`) |
@@ -113,7 +113,7 @@ menu/          menu PDFs + catalog.csv (113 items, availability)
 labels/        photo_groups.csv (hand-made labels)
 db/            state.sql (text export of the database)
 doc/           design notes
-*.bat          start_review.bat, export_final.bat
+start.bat      the single launcher: review / studio / export
 ```
 
 Not in git: `assets/`, `work/`, `output/`, `final/`, `ready_for_crop/`, `Image_Tracker.xlsx`, `.venv/`.

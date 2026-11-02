@@ -45,6 +45,32 @@ def test_group_expansion_adds_lookalikes_and_skips_uncooked():
     assert "BR-008" not in groups.expand(["BR-008"])     # not cooked yet -> never a candidate
 
 
+def test_mat_decides_the_brand_of_a_shared_dish():
+    names = lambda ids: {i: next(x for x in catalog.load() if x["item_id"] == i)["brand"] for i in ids}
+    both = groups.expand(["BR-001"])                               # no mat: both brands that sell Kaju Paneer Biryani
+    assert {"BR-001", "SB-010"} <= set(both)
+    assert groups.expand(["BR-001"], "green") == ["BR-001"]        # green leaf mat  -> Biryani Rules
+    assert groups.expand(["BR-001"], "royal") == ["SB-010"]        # royal swirl mat -> The Sunday Biryani
+    assert groups.expand(["SB-021"], "royal") == ["SB-021"] and groups.expand(["SB-021"], "plain") == ["DM-070"]
+    assert groups.expand(["BR-014"], "green") == ["BR-014"]        # Biryani Rules sells gulab jamun too
+    assert groups.expand(["BR-011"], "plain") == []                # manchurian is not on the Day Meal menu
+    assert set(names(groups.expand(["DM-071"], "plain")).values()) == {"day-meal"}
+    with pytest.raises(KeyError):
+        groups.expand(["BR-001"], "polka-dot")
+
+
+def test_retag_rewrites_initials_but_keeps_custom_dish_names():
+    from kitchen import retag
+    items = {i["item_id"]: i for i in catalog.load()}
+    f = lambda *a: retag.new_name(*a, items)
+    assert f("BR-003_paneer-nawabi-biryani_2", "BR-003", 2, "SB-012", 1) == "SB-012_paneer-biryani_1"      # default name regenerated
+    assert f("BR-004_kaju-paneer-biryani_2", "BR-004", 2, "SB-013", 1) == "SB-013_kaju-paneer-biryani_1"   # custom dish name kept
+    assert f("Sunday-biryani-006_hyderabadi-veg-dum-biryani_1", "BR-006", 1, "SB-015", 1) == \
+        "SB-015_hyderabadi-veg-dum-biryani_1"                                                              # hand-typed initials fixed
+    assert f("BR-001_kaju-paneer-shahi-biryani", "BR-001", 3, "BR-001", 3) == "BR-001_kaju-paneer-shahi-biryani"
+    assert f("my-special", "BR-001", 1, "DM-001", 1) == "DM-001_my-special"
+
+
 def test_slot_roundtrip_and_export_invalidation(tmp_db):
     slot = {"photo_id": "abc", "status": "approved", "name": "BR-001_x_1", "rot": 0, "tilt": 0.0,
             "crop": [0.1, 0.1, 0.9, 0.9], "aspect": "free", "enhance": True}

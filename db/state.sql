@@ -646,20 +646,20 @@ CREATE TABLE slots (
     final_path TEXT,
     exported_at REAL
 );
-INSERT INTO "slots" VALUES('BR-001:1','BR-001',1,'1a8f1a5a15','approved','BR-001_kaju-paneer-shahi-biryani_1',0,0.0,'[0.13376, 0.14286, 0.9197, 0.83496]','free',1,1.793635477478889466e+09,0,0,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-001:2','BR-001',2,'3ebdc7c5c0','rejected','BR-001_kaju-paneer-shahi-biryani_2',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793635504796080828e+09,0,0,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-001:3','BR-001',3,'7452473739','approved','BR-001_kaju-paneer-shahi-biryani',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.79363685472107029e+09,0,0,NULL,NULL);
 INSERT INTO "slots" VALUES('BR-002:1','BR-002',1,'1b79e510d5','deleted','BR-002_corn-mushroom-jugalbandi-biryani_1',0,-0.3,'[0.0, 0.0, 1.0, 1.0]','free',1,1.793636981049325942e+09,0,0,NULL,NULL);
 INSERT INTO "slots" VALUES('BR-002:2','BR-002',2,'5232a6aeb0','deleted','BR-002_corn-mushroom-jugalbandi-biryani_2',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793636970080031157e+09,0,0,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-002:3','BR-002',3,'43998341d8','approved','BR-002_corn-mushroom-jugalbandi-biryani_3',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793636982988862037e+09,0,0,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-003:1','BR-003',1,'d04a56536a','approved','BR-003_paneer-nawabi-biryani_1',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1793637013.52165,0,0,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-003:2','BR-003',2,'d6046ac835','approved','BR-003_paneer-nawabi-biryani_2',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793637013949122191e+09,0,0,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-003:3','BR-003',3,'fd87be25f4','approved','BR-003_mushroom-paneer-biryani_3',0,0.0,'[0.161, 0.0, 0.874, 0.8456]','free',1,1.793637044999586343e+09,0,0,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-004:1','BR-004',1,'d1be002bc5','approved','BR-004_chef-special-veg-biryani_1',3,0.0,'[0.20453, 0.0, 0.91547, 0.89191]','free',1,1.793637289226798535e+09,0,0,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-004:2','BR-004',2,'d5dd72b412','approved','BR-004_kaju-paneer-biryani_2',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793637292216679097e+09,0,0,NULL,NULL);
 INSERT INTO "slots" VALUES('BR-004:3','BR-004',3,'4b97ad1ebd','deleted','BR-004_chef-s-hukum-veg-biryani_3',3,0.0,'[0.1634, 0.0, 0.90327, 0.888]','free',1,1.793637120899533272e+09,0,0,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-006:1','BR-006',1,'3552d43148','approved','Sunday-biryani-006_hyderabadi-veg-dum-biryani_1',3,0.0,'[0.0, 0.0, 1.0, 1.0]','free',1,1.793637286099488974e+09,0,0,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-006:2','BR-006',2,'3fc8e093d9','pending','BR-006_hyderabadi-veg-dum-biryani_2',3,0.0,'[0.0, 0.0, 1.0, 1.0]','free',1,1.793637285791205167e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-001:1','BR-001',1,'1a8f1a5a15','approved','BR-001_kaju-paneer-shahi-biryani_1',0,0.0,'[0.13376, 0.14286, 0.9197, 0.83496]','free',1,1.793637929934513093e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-001:2','BR-001',2,'3ebdc7c5c0','rejected','BR-001_kaju-paneer-shahi-biryani_2',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793637929936519862e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-001:3','BR-001',3,'7452473739','approved','BR-001_kaju-paneer-shahi-biryani',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793637929936971188e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-002:3','BR-002',3,'43998341d8','approved','BR-002_corn-mushroom-jugalbandi-biryani_3',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793637929937977553e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-003:1','BR-003',1,'d04a56536a','approved','BR-003_paneer-nawabi-biryani_1',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793637929938977242e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('SB-012:1','SB-012',1,'d6046ac835','approved','SB-012_paneer-biryani_1',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.79363792993997717e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-003:2','BR-003',2,'fd87be25f4','approved','BR-003_mushroom-paneer-biryani_2',0,0.0,'[0.161, 0.0, 0.874, 0.8456]','free',1,1.793637929940977097e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-004:1','BR-004',1,'d1be002bc5','approved','BR-004_chef-special-veg-biryani_1',3,0.0,'[0.20453, 0.0, 0.91547, 0.89191]','free',1,1.793637929941978216e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('SB-013:1','SB-013',1,'d5dd72b412','approved','SB-013_kaju-paneer-biryani_1',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793637929942982673e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('SB-015:1','SB-015',1,'3552d43148','approved','SB-015_hyderabadi-veg-dum-biryani_1',3,0.0,'[0.0, 0.0, 1.0, 1.0]','free',1,1.793637929943978071e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-006:1','BR-006',1,'3fc8e093d9','pending','BR-006_hyderabadi-veg-dum-biryani_1',3,0.0,'[0.0, 0.0, 1.0, 1.0]','free',1,1.793637929944977521e+09,0,0,NULL,NULL);
 CREATE TABLE uploads (
     path        TEXT PRIMARY KEY,
     item_id     TEXT,                 -- parsed from the file name prefix (BR-001_...), when present

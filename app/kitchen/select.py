@@ -8,6 +8,7 @@ import json
 import os
 import shutil
 from contextlib import closing
+from typing import Optional
 
 import imagehash
 import numpy as np
@@ -37,16 +38,17 @@ def _pins() -> dict:
     return pins
 
 
-def run(con) -> dict:
+def run(con, scope: Optional[set] = None) -> dict:
+    """`scope` (optional set of photo ids) limits the candidate photos, e.g. to the ones still in your list."""
     index, grps = groups.photo_index(), groups.load()
     rows = {r["id"]: r for r in con.execute("SELECT * FROM files WHERE status='downscaled'")}
     quality = _quality(list(rows.values()))
     cand = {}                                           # item_id -> {group_id -> [(score, photo_id, conf)]}
     for g in grps:
-        for item in groups.expand(g["items"]):
+        for item in groups.expand(g["items"], g["mat"]):
             for n in range(g["n_from"], g["n_to"] + 1):
                 pid = index.get(n)
-                if pid in rows:
+                if pid in rows and (scope is None or pid in scope):
                     score = groups.WEIGHT[g["confidence"]] * (0.5 + 0.5 * quality[pid])
                     cand.setdefault(item, {}).setdefault(g["group_id"], []).append((score, pid, g["confidence"]))
     pins, items = _pins(), catalog.load()

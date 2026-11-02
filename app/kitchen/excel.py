@@ -218,14 +218,15 @@ def run() -> dict:
     # ---------- Photo Groups (you correct the labels here) ----------
     _head(ws_gr, ["Group", "From photo #", "To photo #", "Photos", "Assigned item IDs", "Assigned items",
                   "Confidence", "What I see", "Sample 1", "Sample 2", "Sample 3",
-                  "Your correction 1", "Your correction 2", "Your correction 3", "Confirm as-is (Y)"],
-          [8, 8, 8, 8, 20, 36, 12, 44, 21, 21, 21, 34, 34, 34, 11])
+                  "Your correction 1", "Your correction 2", "Your correction 3", "Confirm as-is (Y)", "Mat -> brand"],
+          [8, 8, 8, 8, 20, 36, 12, 44, 21, 21, 21, 34, 34, 34, 11, 26])
     cooked_items = [it for it in items if it["availability"] == "available"]
     for i, g in enumerate(grps, 2):
         raw = carried.get(g["group_id"], {}).get("raw", [None] * 4)
         ws_gr.append([g["group_id"], g["n_from"], g["n_to"], f"=C{i}-B{i}+1", " ".join(g["items"]),
                       "; ".join(names.get(x, x) for x in g["items"]) or "(none matched)",
-                      CONF[g["confidence"]], g["note"], "", "", ""] + raw)
+                      CONF[g["confidence"]], g["note"], "", "", ""] + raw +
+                     [f"{g['mat']} -> {groups.BRAND_OF_MAT[g['mat']]}" if g["mat"] else "not decided"])
         ws_gr.row_dimensions[i].height = 88
         for k, p in enumerate(_thumbs(g, index, down)):
             im = XLImage(str(p))
@@ -233,7 +234,7 @@ def run() -> dict:
         for c in range(12, 16):
             ws_gr.cell(i, c).fill = INPUT
     last_g = len(grps) + 1
-    _body(ws_gr, 2, last_g, 1, 15, wrap=True)
+    _body(ws_gr, 2, last_g, 1, 16, wrap=True)
     for row in ws_gr.iter_rows(min_row=2, max_row=last_g, min_col=12, max_col=15):
         for cell in row:
             cell.font = Font(name=F, size=10, color="0000FF")
