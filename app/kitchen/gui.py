@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageTk
 
-from . import catalog, config, db, enhance, finalize, slotstore
+from . import catalog, config, db, enhance, finalize, select, slotstore
 from .sync import Syncer
 
 ASPECTS = {"free": None, "1:1": 1.0, "4:3": 4 / 3, "3:4": 3 / 4}   # free-style is the default
@@ -23,7 +23,8 @@ HANDLE = 14
 MIN_PX = 60
 TILT_MAX = 15.0
 BG = "#1b1b1b"
-HELP = ("Enter/Space = approve + next  |  <- -> = prev/next  |  X = reject  |  R / Shift+R = rotate 90  |  "
+HELP = ("Enter/Space = approve + next  |  <- -> = prev/next  |  X = reject (kept, marked)  |  "
+        "Del = DELETE (removes from list + folders)  |  R / Shift+R = rotate 90  |  "
         "TILT: slider, or , . = 0.5 deg, < > = 0.1 deg, 0 = reset, L = auto-level, G = level grid  |  "
         "E = enhance on/off  |  A = aspect  |  [ ] = other photo  |  N = edit name  |  P = preview  |  "
         "wheel = resize crop  |  drag = move / corners resize")
@@ -43,8 +44,8 @@ class App:
         con = db.connect()
         self.files = {r["id"]: r["down_path"] for r in
                       con.execute("SELECT id,down_path FROM files WHERE status='downscaled'")}
-        self._build_keys()
         self.state = slotstore.load_all()
+        self._build_keys()
         self.cache_base = {}
         self.exporting = False
         self._scale_busy = False
@@ -61,8 +62,8 @@ class App:
 
     def _build_keys(self):
         self.items = {it["item_id"]: it for it in catalog.active()}      # uncooked items have no slots
-        self.keys = [f"{iid}:{r}" for iid in self.items
-                     for r in range(1, min(len(self.sel.get(iid, [])), config.TOP_N) + 1)]
+        self.keys = [f"{iid}:{p['rank']}" for iid in self.items for p in self.sel.get(iid, [])
+                     if p.get("rank") and self.state.get(f"{iid}:{p['rank']}", {}).get("status") != "deleted"]
 
     # ---------- UI ----------
     def _build_ui(self):
@@ -119,11 +120,14 @@ class App:
         btns = tk.Frame(r, bg=BG)
         btns.pack(fill="x", padx=10, pady=2)
         for text, cmd in [("<  Prev", self.prev), ("Approve + Next  (Enter)", self.approve),
-                          ("Reject (X)", self.reject), ("Rotate left", lambda: self.rotate(-1)),
+                          ("Reject (X)", self.reject), ("DELETE (Del)", self.delete_current),
+                          ("Rotate left", lambda: self.rotate(-1)),
                           ("Rotate right", lambda: self.rotate(1)), ("Other photo  [", lambda: self.alt(-1)),
                           ("]", lambda: self.alt(1)), ("Preview (P)", self.preview),
                           ("Export approved -> final/", self.export)]:
-            tk.Button(btns, text=text, command=cmd, padx=8).pack(side="left", padx=3)
+            danger = text.startswith("DELETE")
+            tk.Button(btns, text=text, command=cmd, padx=8, bg="#b3261e" if danger else None,
+                      fg="white" if danger else None).pack(side="left", padx=3)
         self.excel_var = tk.StringVar(value=self.sync.status)
         tk.Label(btns, textvariable=self.excel_var, bg=BG, fg="#8ab4f8", font=("Segoe UI", 9)).pack(side="right")
         tk.Label(r, text=HELP, bg=BG, fg="#777", font=("Segoe UI", 9), anchor="w",
@@ -176,9 +180,9 @@ class App:
     # ---------- slot handling ----------
     def default_slot(self, key):
         iid, rank = key.split(":")
-        picks = self.sel[iid]
+        pick = next(p for p in self.sel[iid] if p.get("rank") == int(rank))
         it = self.items[iid]
-        return {"photo_id": picks[int(rank) - 1]["photo_id"], "rot": 0, "tilt": 0.0, "crop": None,
+        return {"photo_id": pick["photo_id"], "rot": 0, "tilt": 0.0, "crop": None,
                 "enhance": True, "aspect": "free", "status": "pending", "exported": False,
                 "exported_enhanced": False, "final_path": None,
                 "name": f"{iid}_{it['slug']}_{rank}"}
@@ -271,6 +275,32 @@ class App:
         self.commit(save=False)
         self.slot["status"] = "rejected"
         self.next()
+
+    def delete_current(self):
+        """Remove this photo from the list and delete its files (output/, ready_for_crop/, final/)."""
+        it = self.items[self.key.split(":")[0]]
+        if not messagebox.askyesno(
+                "Delete this photo?",
+                f"{it['item_name']}  -  photo {self.key.split(':')[1]}\n\n"
+                "This removes it from the review list and deletes its copies in output/, ready_for_crop/ and "
+                "final/. It will not be suggested again for this dish.\n\n"
+                "The original photo in assets/ is NOT touched.\n\n"
+                "(Use Reject instead if you only want to mark it as not good.)",
+                icon="warning", default="no"):
+            return
+        self.commit()                                          # the slot must exist in the database
+        res = select.delete_slot(self.key)
+        self.state[self.key] = {**self.slot, "status": "deleted"}
+        pos = self.idx
+        self._build_keys()
+        self.sync.mark_dirty()
+        if not self.keys:
+            messagebox.showinfo("Nothing left", "No photos left to review.")
+            self.on_close()
+            return
+        self.idx = min(pos, len(self.keys) - 1)                # the next photo slides into this position
+        self.load_slot()
+        self.sync.status = f"Deleted - removed {len(res['removed'])} file(s); Excel will follow"
 
     def rotate(self, d):
         self.slot["rot"] = (self.slot["rot"] + d) % 4
@@ -517,7 +547,8 @@ class App:
         if k in ("Return", "space"): self.approve()
         elif k == "Right": self.next()
         elif k == "Left": self.prev()
-        elif k in ("x", "X", "Delete"): self.reject()
+        elif k in ("x", "X"): self.reject()
+        elif k == "Delete": self.delete_current()
         elif k == "r": self.rotate(1)
         elif k == "R": self.rotate(-1)
         elif k == "comma": self.tilt(0.5)

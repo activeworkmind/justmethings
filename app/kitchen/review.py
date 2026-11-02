@@ -20,7 +20,7 @@ def run() -> str:
                      f"<small>({it['brand']})</small></h2><div class=row>")
         for n, p in enumerate(sel[it["item_id"]]):
             rel = os.path.relpath(p["file"], config.REVIEW).replace("\\", "/")
-            parts.append(f"<figure class='{'top' if n < config.TOP_N else ''}'><img loading=lazy src='{rel}'>"
+            parts.append(f"<figure class='{'top' if p.get('rank') else ''}'><img loading=lazy src='{rel}'>"
                          f"<figcaption>{p['photo_id']} · {p['score']}</figcaption></figure>")
         parts.append("</div>")
     out = config.REVIEW / "index.html"

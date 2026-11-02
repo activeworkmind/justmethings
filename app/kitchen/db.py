@@ -28,13 +28,21 @@ CREATE INDEX IF NOT EXISTS idx_files_status ON files(kind, status);
 -- small key/value store (e.g. which Excel corrections were already applied)
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 
+-- photos the user deleted for a dish: never suggested again for that item
+CREATE TABLE IF NOT EXISTS excluded (
+    item_id    TEXT NOT NULL,
+    photo_id   TEXT NOT NULL,
+    deleted_at REAL,
+    PRIMARY KEY (item_id, photo_id)
+);
+
 -- one row per output slot (menu item x rank); written by the review GUI, read by finalize + Excel
 CREATE TABLE IF NOT EXISTS slots (
     slot_key   TEXT PRIMARY KEY,          -- 'BR-001:1'
     item_id    TEXT NOT NULL,
     rank       INTEGER NOT NULL,
     photo_id   TEXT NOT NULL,
-    status     TEXT NOT NULL DEFAULT 'pending',   -- pending | approved | rejected
+    status     TEXT NOT NULL DEFAULT 'pending',   -- pending | approved | rejected | deleted
     name       TEXT,
     rot        INTEGER NOT NULL DEFAULT 0,
     tilt       REAL NOT NULL DEFAULT 0,

@@ -47,6 +47,21 @@ def save(key: str, s: dict) -> None:
         con.commit()
 
 
+def mark_deleted(key: str) -> str | None:
+    """Remove a slot from the list for good: status 'deleted', its photo is never suggested again for this item.
+    Returns the final/ file that existed (so the caller can delete it), if any."""
+    with closing(db.connect()) as con:
+        row = con.execute("SELECT * FROM slots WHERE slot_key=?", (key,)).fetchone()
+        if row is None:
+            raise KeyError(f"slot {key} has not been saved yet")
+        con.execute("INSERT OR IGNORE INTO excluded(item_id,photo_id,deleted_at) VALUES(?,?,?)",
+                    (row["item_id"], row["photo_id"], time.time()))
+        con.execute("UPDATE slots SET status='deleted',exported=0,exported_enhanced=0,final_path=NULL,"
+                    "exported_at=NULL,reviewed_at=? WHERE slot_key=?", (time.time(), key))
+        con.commit()
+        return row["final_path"]
+
+
 def mark_exported(key: str, path: str, enhanced: bool) -> None:
     with closing(db.connect()) as con:
         con.execute("UPDATE slots SET exported=1,exported_enhanced=?,final_path=?,exported_at=? WHERE slot_key=?",

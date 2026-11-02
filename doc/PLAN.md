@@ -23,7 +23,11 @@ for three brands / 113 items, from ~515 phone photos (423 DNG + 92 JPEG; 88 vide
 * `slots` - one row per output slot (`item_id:rank`): chosen photo, crop (fractions), rotation, tilt, aspect,
   enhance flag, review status, and export state (`exported`, `exported_enhanced`, `final_path`).
   Changing a decision automatically invalidates the previous export.
+* `excluded` - (item, photo) pairs the user deleted; selection never suggests them again for that item.
 * `meta` - key/value (which Excel corrections were already applied).
+
+Slot status: `pending | approved | rejected | deleted`. Each pick in `work/selection.json` carries its `rank`
+(1..3, or null for alternates), so deleting a rank leaves the other ranks - and their file names - unchanged.
 
 ## Sync design (`kitchen/sync.py`)
 * DB -> Excel: any saved decision marks the workbook dirty; rebuilt after 2.5 s of quiet; atomic write

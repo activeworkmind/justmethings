@@ -39,6 +39,11 @@ Free-form crop (drag / corners / wheel; `A` cycles 1:1, 4:3, 3:4), 90 deg rotati
 0.1 steps, level grid, auto-level), enhance on/off, rename, other-photo cycling, preview, approve / reject.
 Every action is saved to SQLite immediately. Shortcuts are listed at the bottom of the window.
 
+**Reject vs Delete** - *Reject* (`X`) keeps the photo in the list marked "Rejected" (it is not exported to
+`final/`). *Delete* (`Del`, red button, asks to confirm) removes it from the list **and** deletes its copies in
+`output/`, `ready_for_crop/` and `final/`; that photo is never suggested again for that dish. Ranks stay stable
+(delete rank 2 and ranks 1 and 3 keep their files). Originals in `assets/` are never touched.
+
 ### Excel <-> database sync
 `Image_Tracker.xlsx` (Summary, Menu Items, Photo List, Photo Groups) is rebuilt automatically a few seconds after
 every change; corrections typed in *Photo Groups* are applied automatically after you save the workbook. If the

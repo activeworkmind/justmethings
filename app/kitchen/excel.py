@@ -107,10 +107,12 @@ def _thumbs(g, index, down):
     out = []
     for k, num in enumerate(dict.fromkeys(n)):
         p = THUMBS / f"{g['group_id']}_{k}.jpg"
-        if not p.exists():
+        if not p.exists():                                  # atomic write: another process may be reading it
             im = Image.open(down[index[num]]).convert("RGB")
             im.thumbnail((150, 112))
-            im.save(p, quality=80)
+            tmp = p.with_name(f"{p.stem}.{os.getpid()}.tmp.jpg")
+            im.save(tmp, quality=80)
+            os.replace(tmp, p)
         out.append(p)
     return out
 
@@ -141,9 +143,11 @@ def run() -> dict:
           [10, 34, 6, 40, 10, 18, 14, 14, 16, 58, 10, 24])
     r = 2
     for it in items:
-        picks = sel.get(it["item_id"], [])[:config.TOP_N]
-        for rank, p in enumerate(picks, 1):
+        for p in (q for q in sel.get(it["item_id"], []) if q.get("rank")):
+            rank = p["rank"]
             s = slots.get(f"{it['item_id']}:{rank}")
+            if s and s["status"] == "deleted":                       # deleted photos leave the list
+                continue
             pid = s["photo_id"] if s else p["photo_id"]
             pick = next((q for q in sel[it["item_id"]] if q["photo_id"] == pid), p)
             status = {"approved": "Approved", "rejected": "Rejected", "pending": "Pending"}[s["status"]] if s else "Pending"

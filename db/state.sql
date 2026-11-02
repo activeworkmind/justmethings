@@ -1,4 +1,10 @@
 BEGIN TRANSACTION;
+CREATE TABLE excluded (
+    item_id    TEXT NOT NULL,
+    photo_id   TEXT NOT NULL,
+    deleted_at REAL,
+    PRIMARY KEY (item_id, photo_id)
+);
 CREATE TABLE files (
     id        TEXT PRIMARY KEY,   -- sha1(relpath|size|mtime)[:10]
     path      TEXT NOT NULL,
@@ -637,5 +643,8 @@ CREATE TABLE slots (
     final_path TEXT,
     exported_at REAL
 );
+INSERT INTO "slots" VALUES('BR-001:1','BR-001',1,'1a8f1a5a15','approved','BR-001_kaju-paneer-shahi-biryani_1',0,0.0,'[0.13376, 0.14286, 0.9197, 0.83496]','free',1,1.793635477478889466e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-001:2','BR-001',2,'3ebdc7c5c0','rejected','BR-001_kaju-paneer-shahi-biryani_2',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793635504796080828e+09,0,0,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-001:3','BR-001',3,'7452473739','pending','BR-001_kaju-paneer-shahi-biryani_3',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793635503466235399e+09,0,0,NULL,NULL);
 CREATE INDEX idx_files_status ON files(kind, status);
 COMMIT;

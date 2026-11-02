@@ -1,4 +1,6 @@
 """Core behaviour tests. Run from the app folder:  python -m pytest -q"""
+from contextlib import closing
+
 import numpy as np
 import pytest
 from PIL import Image
@@ -56,6 +58,26 @@ def test_slot_roundtrip_and_export_invalidation(tmp_db):
 
     slotstore.save("BR-001:1", {**slot, "tilt": 1.5})     # decision changed -> must be re-exported
     assert not slotstore.load_all()["BR-001:1"]["exported"]
+
+
+SLOT = {"photo_id": "abc", "status": "approved", "name": "BR-001_x_2", "rot": 0, "tilt": 0.0,
+        "crop": [0.1, 0.1, 0.9, 0.9], "aspect": "free", "enhance": True}
+
+
+def test_delete_clears_export_and_excludes_the_photo_for_that_dish(tmp_db):
+    slotstore.save("BR-001:2", SLOT)
+    slotstore.mark_exported("BR-001:2", "final/x.jpg", enhanced=True)
+    assert slotstore.mark_deleted("BR-001:2") == "final/x.jpg"          # caller removes this file
+    s = slotstore.load_all()["BR-001:2"]
+    assert s["status"] == "deleted" and not s["exported"] and s["final_path"] is None
+    with closing(db.connect()) as con:
+        rows = con.execute("SELECT item_id,photo_id FROM excluded").fetchall()
+    assert [tuple(r) for r in rows] == [("BR-001", "abc")]
+
+
+def test_delete_of_an_unsaved_slot_is_rejected(tmp_db):
+    with pytest.raises(KeyError):
+        slotstore.mark_deleted("BR-001:1")
 
 
 def test_db_dump_and_restore(tmp_db, tmp_path):
