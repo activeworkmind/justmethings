@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from studio import backgrounds, batch
+from studio import backgrounds
 from studio import image_engine as E
 from studio.brands import BRANDS
 from studio.noise import fbm, perlin2d
@@ -171,42 +171,6 @@ def test_get_background_falls_back_without_token_or_network():
     assert arr.shape == (200, 200, 3) and "procedural" in info
 
 
-# ------------------------------------------------------------------ history / matte cache / recipe
-def test_undo_redo_reset_and_single_matte_extraction(photo, fake_isolate):
-    s = E.ImageSession("p", photo, "day_meal", "1:1", preview_edge=200)
-    assert not s.can_undo and not s.can_redo
-    s.apply("isolate")
-    s.apply("background", source="procedural")
-    s.apply("shadows")
-    s.apply("sunlight")
-    assert len(fake_isolate) == 1                                      # the matte was extracted exactly once
-    assert [e.label for e in s.undo_stack][-1] == "Natural sunlight touch"
-    img_after = s.current
-    assert s.undo() == "Natural sunlight touch" and s.scene.sunlight is None and s.can_redo
-    assert s.redo() == "Natural sunlight touch" and s.scene.sunlight is not None and s.current is img_after
-    s.apply("bokeh")
-    assert not s.can_redo                                              # a new action clears the redo stack
-    s.reset()
-    assert s.scene.cutout is None and s.steps == [] and s.can_undo
-    s.apply("framing")                                                 # matte comes from the cache, not a new extraction
-    assert len(fake_isolate) == 1 and s.alpha_matte is not None
-    s.undo()
-    s.undo()                                                           # back before 'reset'
-    assert s.scene.bokeh is not None
-
-
-def test_preset_is_one_undo_step_and_replays_from_a_recipe(photo, fake_isolate):
-    s = E.ImageSession("p", photo, "biryani_rules", "1:1", preview_edge=200)
-    s.apply_steps(E.master_preset("biryani_rules").steps, "preset")
-    assert len(s.undo_stack) == 1
-    rec = s.recipe()
-    again = E.EnhancementRecipe.from_json(rec.to_json())
-    assert again.steps == rec.steps and again.steps[0]["op"] == "isolate"
-    scene = again.apply_to(photo)
-    assert scene.grade is not None and scene.steam is not None and scene.cutout is not None
-    assert not E.master_preset("day_meal").has("steam") and E.master_preset("day_meal").without("bokeh").has("bokeh") is False
-
-
 def test_render_layers_and_transparent_export(photo, fake_isolate):
     sc = E.Scene(src=photo, brand="sunday_biryani", ratio="1:1")
     sc = E.apply_op(sc, "isolate", {})
@@ -217,29 +181,44 @@ def test_render_layers_and_transparent_export(photo, fake_isolate):
     assert tr.mode == "RGBA" and np.asarray(tr)[..., 3].max() == 255 and np.asarray(tr)[..., 3].min() == 0
 
 
-# ------------------------------------------------------------------ export profile
-def test_upload_profile_respects_one_megabyte_and_strips_overlays(tmp_path):
-    noise = Image.fromarray(np.random.default_rng(0).integers(0, 255, (2048, 2048, 3), dtype=np.uint8))
-    info = E.save_image(noise, tmp_path / "x.jpg", E.PROFILES["swiggy_zomato"])
-    assert info["bytes"] <= 1_000_000 and (tmp_path / "x.jpg").stat().st_size == info["bytes"]
-    rec = E.master_preset("day_meal", include_badge=True)
-    assert rec.has("badge") and not rec.without("badge").has("badge")
-    assert E.PROFILES["swiggy_zomato"].allow_overlays is False
+# ------------------------------------------------------------------ look (what the review app uses)
+def test_apply_look_renders_and_reuses_the_cutout(photo, fake_isolate):
+    steps = E.preset_steps("day_meal")
+    assert steps[0]["op"] == "isolate" and not any(s["op"] == "badge" for s in steps)
+    assert E.preset_steps("day_meal", include_badge=True)[-1]["op"] == "badge"
+    cache = {}
+    a = E.apply_look(photo, "day_meal", steps, 300, cache, "k")
+    b = E.apply_look(photo, "day_meal", [s for s in steps if s["op"] != "steam"], 300, cache, "k")
+    assert a.size == b.size == (300, 224)                              # keeps the user's crop shape (even pixel sizes)
+    assert len(fake_isolate) == 1                                      # second preview reused the cached cut-out
+    plain = E.apply_look(photo, "day_meal", [{"op": "lab_pop", "params": {}}], 300, cache, "k")
+    assert plain.size == (300, 224) and len(fake_isolate) == 1         # mask-free steps need no cut-out at all
 
 
-def test_batch_runs_a_recipe_on_a_folder(tmp_path, photo, fake_isolate, monkeypatch):
-    monkeypatch.setattr(batch, "record_upload", lambda *a, **k: None)
-    src = tmp_path / "in"
-    src.mkdir()
-    photo.save(src / "DM-001_test-dish_1.jpg")
-    photo.save(src / "DM-002_other_1.jpg")
-    (src / "broken.jpg").write_bytes(b"not an image")
-    rec = E.master_preset("day_meal", include_badge=True)
-    rep = batch.run_recipe_on_folder(rec, src, tmp_path / "out", "swiggy_zomato")
-    assert rep["ok"] == 2 and rep["failed"] == 1                       # one bad photo never stops the batch
-    outs = sorted((tmp_path / "out" / "day-meal").glob("*.jpg"))
-    assert [p.name for p in outs] == ["DM-001_test-dish_1.jpg", "DM-002_other_1.jpg"]
-    assert all(p.stat().st_size <= 1_000_000 for p in outs)
-    assert (tmp_path / "out" / "day-meal" / "_batch_report.csv").exists()
-    again = batch.run_recipe_on_folder(rec, src, tmp_path / "out", "swiggy_zomato", skip_existing=True)
-    assert again["skipped"] == 2
+def test_finalize_applies_the_look_after_the_crop(photo, fake_isolate):
+    from kitchen import finalize
+    slot = {"rot": 0, "tilt": 0.0, "crop": [0.1, 0.1, 0.9, 0.9], "enhance": True,
+            "look": E.preset_steps("sunday_biryani"), "_brand": "sunday_biryani"}
+    out = finalize.render_image(photo, slot, 400)
+    assert out.size == (320, 240) and len(fake_isolate) == 1
+    assert finalize.brand_key("day-meal") == "day_meal"
+
+
+def test_dialog_turns_checkboxes_into_steps(photo):
+    import tkinter as tk
+    from kitchen.lookdialog import LookDialog
+    root = tk.Tk()
+    root.withdraw()
+    tk.Toplevel.grab_set = lambda self: None                           # the window is not visible in a test
+    try:
+        d = LookDialog(root, "Day Meal", "day_meal", [], lambda steps: photo)
+        assert d.steps() == []                                         # nothing ticked = plain photo
+        d.preset()
+        ops = [s["op"] for s in d.steps()]
+        assert ops[0] == "isolate" and "background" in ops and "steam" not in ops      # Day Meal preset has no steam
+        d.clear()
+        d.vars["lab_pop"].set(True)
+        assert [s["op"] for s in d.steps()] == ["lab_pop"]            # a mask-free step does not force isolation
+        d.destroy()
+    finally:
+        root.destroy()

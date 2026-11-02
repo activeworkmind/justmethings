@@ -11,8 +11,7 @@ tqdm==4.70.1
 typer==0.27.3
 pytest==9.2.0
 
-# --- Food Photo Studio (app/studio): 100 % free / open-source ---
-streamlit==1.66.1
+# --- "Look..." brand styling in the review app (app/studio): 100 % free / open-source ---
 rembg[cpu]==2.0.86            # dish isolation (isnet-general-use / birefnet-general / u2net); models download on first use
 onnxruntime==1.31.1
 huggingface_hub==2.4.0        # free serverless inference for AI table backgrounds (optional token)

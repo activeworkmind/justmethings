@@ -77,7 +77,18 @@ def test_slot_roundtrip_and_export_invalidation(tmp_db):
     slotstore.save("BR-001:1", slot)
     slotstore.mark_exported("BR-001:1", "final/x.jpg", enhanced=True)
     s = slotstore.load_all()["BR-001:1"]
-    assert s["exported"] and s["exported_enhanced"] and s["crop"] == [0.1, 0.1, 0.9, 0.9]
+    assert s["exported"] and s["exported_enhanced"] and s["crop"] == [0.1, 0.1, 0.9, 0.9] and s["look"] == []
+
+    look = [{"op": "isolate", "params": {}}, {"op": "shadows", "params": {}}]
+    slotstore.save("BR-001:1", {**slot, "look": look})                 # choosing a look is a new decision
+    s = slotstore.load_all()["BR-001:1"]
+    assert s["look"] == look and not s["exported"]
+    slotstore.mark_exported("BR-001:1", "final/x.jpg", enhanced=True)
+    slotstore.save("BR-001:1", {**slot, "look": look})                 # same look again -> export stays valid
+    assert slotstore.load_all()["BR-001:1"]["exported"]
+    slotstore.save("BR-001:1", slot)                                   # look removed -> must be re-rendered
+    assert not slotstore.load_all()["BR-001:1"]["exported"]
+    slotstore.mark_exported("BR-001:1", "final/x.jpg", enhanced=True)  # back to the original scenario below
 
     slotstore.save("BR-001:1", {**slot})                  # same decision -> export stays valid
     assert slotstore.load_all()["BR-001:1"]["exported"]

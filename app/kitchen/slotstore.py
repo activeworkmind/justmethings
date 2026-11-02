@@ -9,7 +9,8 @@ from . import db
 def _row_to_slot(r) -> dict:
     return {"photo_id": r["photo_id"], "status": r["status"], "name": r["name"], "rot": r["rot"],
             "tilt": r["tilt"], "crop": json.loads(r["crop"]) if r["crop"] else None,
-            "aspect": r["aspect"], "enhance": bool(r["enhance"]), "exported": bool(r["exported"]),
+            "aspect": r["aspect"], "enhance": bool(r["enhance"]), "look": json.loads(r["look"]) if r["look"] else [],
+            "exported": bool(r["exported"]),
             "exported_enhanced": bool(r["exported_enhanced"]), "final_path": r["final_path"]}
 
 
@@ -28,20 +29,21 @@ def save(key: str, s: dict) -> None:
     """Upsert one slot. A changed decision invalidates the previous export (exported -> 0)."""
     item_id, rank = key.split(":")
     crop = json.dumps([round(v, 5) for v in s["crop"]]) if s.get("crop") else None
+    look = json.dumps(s["look"]) if s.get("look") else None
     with closing(db.connect()) as con:
         old = con.execute("SELECT * FROM slots WHERE slot_key=?", (key,)).fetchone()
-        new_decision = (s["photo_id"], s["status"], s["name"], s["rot"], s["tilt"], crop, bool(s["enhance"]))
+        new_decision = (s["photo_id"], s["status"], s["name"], s["rot"], s["tilt"], crop, bool(s["enhance"]), look)
         changed = old is None or (old["photo_id"], old["status"], old["name"], old["rot"], old["tilt"],
-                                  old["crop"], bool(old["enhance"])) != new_decision
+                                  old["crop"], bool(old["enhance"]), old["look"]) != new_decision
         exported = 0 if changed else (old["exported"] if old else 0)
         con.execute(
-            "INSERT INTO slots(slot_key,item_id,rank,photo_id,status,name,rot,tilt,crop,aspect,enhance,reviewed_at,"
-            "exported,exported_enhanced,final_path,exported_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+            "INSERT INTO slots(slot_key,item_id,rank,photo_id,status,name,rot,tilt,crop,aspect,enhance,look,reviewed_at,"
+            "exported,exported_enhanced,final_path,exported_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
             "ON CONFLICT(slot_key) DO UPDATE SET photo_id=excluded.photo_id,status=excluded.status,"
             "name=excluded.name,rot=excluded.rot,tilt=excluded.tilt,crop=excluded.crop,aspect=excluded.aspect,"
-            "enhance=excluded.enhance,reviewed_at=excluded.reviewed_at,exported=excluded.exported",
+            "enhance=excluded.enhance,look=excluded.look,reviewed_at=excluded.reviewed_at,exported=excluded.exported",
             (key, item_id, int(rank), s["photo_id"], s["status"], s["name"], s["rot"], s["tilt"], crop,
-             s["aspect"], int(bool(s["enhance"])), time.time(), exported,
+             s["aspect"], int(bool(s["enhance"])), look, time.time(), exported,
              old["exported_enhanced"] if old else 0, old["final_path"] if old else None,
              old["exported_at"] if old else None))
         con.commit()

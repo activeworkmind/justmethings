@@ -4,10 +4,9 @@
            status). Your unapplied corrections in 'Photo Groups' are carried over, never lost.
   apply()  reads your corrections from 'Photo Groups' into work/photo_groups.csv (then run `select`).
 
-Sheets: Summary | Menu Items | Photo List | Upload Ready | Photo Groups | Lists"""
+Sheets: Summary | Menu Items | Photo List | Photo Groups | Lists"""
 import json
 import os
-import time
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.drawing.image import Image as XLImage
@@ -135,7 +134,6 @@ def run() -> dict:
     ws_sum.title = "Summary"
     ws_menu = wb.create_sheet("Menu Items")
     ws_pl = wb.create_sheet("Photo List")
-    ws_up = wb.create_sheet("Upload Ready")
     ws_gr = wb.create_sheet("Photo Groups")
     ws_li = wb.create_sheet("Lists")
 
@@ -173,8 +171,8 @@ def run() -> dict:
     # ---------- Menu Items ----------
     _head(ws_menu, ["Item ID", "Brand", "Category", "Item name", "Diet", "Price (INR)", "Availability",
                     "Photos selected", "Photo available?", "Best match", "Approved photos", "Saved to final/",
-                    "Enhanced & saved", "Upload-ready files", "Upload status", "Notes"],
-          [10, 16, 26, 38, 9, 10, 15, 11, 18, 18, 11, 11, 12, 12, 18, 40])
+                    "Enhanced & saved", "Notes"],
+          [10, 16, 26, 38, 9, 10, 15, 11, 18, 18, 11, 11, 12, 40])
     for i, it in enumerate(items, 2):
         cooked = it["availability"] == "available"
         ws_menu.append([it["item_id"], it["brand"], it["category"], it["item_name"], it["diet"], int(it["price_inr"]),
@@ -185,33 +183,15 @@ def run() -> dict:
                         f"=COUNTIFS('Photo List'!$A:$A,A{i},'Photo List'!$G:$G,\"Approved\")",
                         f"=COUNTIFS('Photo List'!$A:$A,A{i},'Photo List'!$H:$H,\"Yes\")",
                         f"=COUNTIFS('Photo List'!$A:$A,A{i},'Photo List'!$I:$I,\"Yes\")",
-                        f"=COUNTIF('Upload Ready'!$B:$B,A{i})",
-                        f'=IF(G{i}="Not cooked yet","Pending cooking",IF(N{i}>0,"Ready to upload","Not yet"))',
                         "" if cooked else "Will be cooked later - name to be provided again"])
         ws_menu.cell(i, 7).fill = INPUT
         ws_menu.cell(i, 7).font = Font(name=F, size=10, color="0000FF")
     last = len(items) + 1
-    _body(ws_menu, 2, last, 1, 16)
-    ws_menu.auto_filter.ref = f"A1:P{last}"
+    _body(ws_menu, 2, last, 1, 14)
+    ws_menu.auto_filter.ref = f"A1:N{last}"
     for text, color in (("Yes", "C6EFCE"), ("No - photo needed", "FFC7CE"), ("Pending cooking", "D9D9D9")):
         ws_menu.conditional_formatting.add(f"I2:I{last}", CellIsRule(operator="equal", formula=[f'"{text}"'],
                                                                      fill=PatternFill("solid", bgColor=color)))
-    for text, color in (("Ready to upload", "C6EFCE"), ("Pending cooking", "D9D9D9")):
-        ws_menu.conditional_formatting.add(f"O2:O{last}", CellIsRule(operator="equal", formula=[f'"{text}"'],
-                                                                     fill=PatternFill("solid", bgColor=color)))
-
-    # ---------- Upload Ready (written by the enhancement studio) ----------
-    _head(ws_up, ["File name", "Item ID", "Brand", "Size (KB)", "Width (px)", "Height (px)", "Within 1 MB?",
-                  "Exported at", "Path"], [44, 10, 18, 11, 11, 11, 13, 19, 70])
-    for k, u in enumerate(con.execute("SELECT * FROM uploads ORDER BY brand, path"), 2):
-        ws_up.append([os.path.basename(u["path"]), u["item_id"] or "", u["brand"], round(u["bytes"] / 1000, 1), u["width"],
-                      u["height"], f'=IF(D{k}<=1000,"Yes","NO - too large")',
-                      time.strftime("%Y-%m-%d %H:%M", time.localtime(u["exported_at"] or 0)),
-                      os.path.relpath(u["path"], config.ROOT) if str(u["path"]).startswith(str(config.ROOT)) else u["path"]])
-    _body(ws_up, 2, max(ws_up.max_row, 2), 1, 9)
-    ws_up.auto_filter.ref = f"A1:I{max(ws_up.max_row, 2)}"
-    ws_up.conditional_formatting.add(f"G2:G{max(ws_up.max_row, 2)}", CellIsRule(
-        operator="equal", formula=['"NO - too large"'], fill=PatternFill("solid", bgColor="FFC7CE")))
     ws_menu.cell(last + 2, 1, "Availability (yellow) is the input column: change a dish to 'Cooked' once it has been "
                               "photographed. Everything else is calculated.").font = Font(name=F, italic=True, size=9)
 
@@ -263,7 +243,7 @@ def run() -> dict:
     ws["A1"] = "Cloud Kitchen - Image Tracker"
     ws["A1"].font = Font(name=F, bold=True, size=14)
     heads = ["Brand", "Total items", "Cooked", "Not cooked yet", "Photo available", "Photo needed",
-             "Approved photos", "Saved to final/", "Enhanced & saved", "Ready to upload"]
+             "Approved photos", "Saved to final/", "Enhanced & saved"]
     for c, h in enumerate(heads, 1):
         cell = ws.cell(3, c, h)
         cell.font, cell.fill, cell.border = Font(name=F, bold=True, color="FFFFFF", size=10), HEAD, BORDER
@@ -277,11 +257,10 @@ def run() -> dict:
                    f'=COUNTIFS({M}$B:$B,A{i},{M}$I:$I,"Yes")',
                    f'=COUNTIFS({M}$B:$B,A{i},{M}$I:$I,"No - photo needed")',
                    f"=SUMIF({M}$B:$B,A{i},{M}$K:$K)", f"=SUMIF({M}$B:$B,A{i},{M}$L:$L)",
-                   f"=SUMIF({M}$B:$B,A{i},{M}$M:$M)",
-                   f'=COUNTIFS({M}$B:$B,A{i},{M}$O:$O,"Ready to upload")'])
+                   f"=SUMIF({M}$B:$B,A{i},{M}$M:$M)"])
     t = 4 + len(brands)
-    ws.append(["TOTAL"] + [f"=SUM({chr(66 + k)}4:{chr(66 + k)}{t - 1})" for k in range(9)])
-    for row in ws.iter_rows(min_row=4, max_row=t, min_col=1, max_col=10):
+    ws.append(["TOTAL"] + [f"=SUM({chr(66 + k)}4:{chr(66 + k)}{t - 1})" for k in range(8)])
+    for row in ws.iter_rows(min_row=4, max_row=t, min_col=1, max_col=9):
         for cell in row:
             cell.font, cell.border = Font(name=F, size=10, bold=(cell.row == t)), BORDER
     notes = ["Notes",
@@ -289,9 +268,7 @@ def run() -> dict:
              "- 'Approved' / 'Saved' / 'Enhanced' come from the review app (SQLite database) and are synced "
              "automatically a few seconds after every change. If this file is open in Excel the sync waits until "
              "it is closed.",
-             "- 'Not cooked yet' dishes are excluded from photo matching until their Availability is set to Cooked.",
-             "- 'Ready to upload' = the Food Photo Studio exported an upload-ready file for the dish (see 'Upload Ready'); "
-             "it is matched by the item ID at the start of the file name (e.g. BR-001_...)."]
+             "- 'Not cooked yet' dishes are excluded from photo matching until their Availability is set to Cooked."]
     for k, n in enumerate(notes):
         ws.cell(t + 2 + k, 1, n).font = Font(name=F, size=10, bold=(k == 0))
 

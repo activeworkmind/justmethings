@@ -28,18 +28,6 @@ CREATE INDEX IF NOT EXISTS idx_files_status ON files(kind, status);
 -- small key/value store (e.g. which Excel corrections were already applied)
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 
--- files written by the enhancement studio (upload-ready images for Swiggy / Zomato)
-CREATE TABLE IF NOT EXISTS uploads (
-    path        TEXT PRIMARY KEY,
-    item_id     TEXT,                 -- parsed from the file name prefix (BR-001_...), when present
-    brand       TEXT,
-    bytes       INTEGER,
-    width       INTEGER,
-    height      INTEGER,
-    recipe      TEXT,                 -- the exact enhancement recipe (JSON) used
-    exported_at REAL
-);
-
 -- photos the user deleted for a dish: never suggested again for that item
 CREATE TABLE IF NOT EXISTS excluded (
     item_id    TEXT NOT NULL,
@@ -61,6 +49,7 @@ CREATE TABLE IF NOT EXISTS slots (
     crop       TEXT,                      -- JSON [x0,y0,x1,y1] as fractions
     aspect     TEXT NOT NULL DEFAULT 'free',
     enhance    INTEGER NOT NULL DEFAULT 1,        -- decision: apply daylight enhancement?
+    look       TEXT,                              -- JSON list of studio steps (brand background, shadows, ...) or NULL
     reviewed_at REAL,
     exported   INTEGER NOT NULL DEFAULT 0,        -- final/ file written for the current decision
     exported_enhanced INTEGER NOT NULL DEFAULT 0, -- that file was enhanced
@@ -76,6 +65,9 @@ def connect():
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA journal_mode=WAL")
     con.executescript(SCHEMA)
+    if "look" not in {r[1] for r in con.execute("PRAGMA table_info(slots)")}:     # upgrade an older database in place
+        con.execute("ALTER TABLE slots ADD COLUMN look TEXT")
+        con.commit()
     return con
 
 

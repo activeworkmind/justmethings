@@ -8,17 +8,13 @@ Design
   stacked in any order and re-rendered at any resolution (preview or export) with identical results.
 * The matte is computed once (rembg) and shared by every later scene, so lighting / framing / background tweaks
   never re-run background removal.
-* `ImageSession` keeps independent undo / redo stacks of (PIL image, label, scene) per photo.
-* An `EnhancementRecipe` is the recorded list of steps; it replays on any photo (batch mode).
+* A "look" is a plain list of steps ({"op", "params"}); `apply_look` replays it on any (already cropped) photo.
 All maths is OpenCV / numpy / PIL - no placeholders."""
 from __future__ import annotations
 
-import io
-import json
 import math
-import os
 import tempfile
-from dataclasses import asdict, dataclass, field, fields, replace
+from dataclasses import dataclass, field, fields, replace
 from pathlib import Path
 from typing import Optional
 
@@ -812,14 +808,6 @@ OPS = {
     "badge": lambda s, **kw: replace(s, badge=_params(BadgeParams, kw)),
 }
 
-LABELS = {
-    "isolate": "Clean dish isolation", "background": "AI theme background", "shadows": "Grounded dual shadows",
-    "sunlight": "Natural sunlight touch", "rim_glow": "Shahi rim & candlelight glow", "framing": "Angle, tilt & framing fix",
-    "lab_pop": "Ghee, gravy & masala pop", "steam": "Fresh steam effect", "bokeh": "DSLR bokeh depth of field",
-    "badge": "Brand badge & dietary icon", "brand_grade": "Brand colour grade",
-}
-
-
 MASK_OPS = {"isolate", "background", "shadows", "framing", "rim_glow", "steam", "bokeh"}   # steps that need the matte
 
 
@@ -827,208 +815,24 @@ def apply_op(scene: Scene, op: str, params: dict) -> Scene:
     return OPS[op](scene, **params)
 
 
-# ============================================================================ recipe
-@dataclass
-class EnhancementRecipe:
-    brand: str
-    ratio: str = "1:1"
-    isolate_model: str = "isnet-general-use"
-    steps: list = field(default_factory=list)            # [{"op": "...", "params": {...}}]
-    version: int = 1
-
-    def to_json(self) -> str:
-        return json.dumps(asdict(self), indent=2)
-
-    @staticmethod
-    def from_json(text: str) -> "EnhancementRecipe":
-        d = json.loads(text)
-        return EnhancementRecipe(**{k: d[k] for k in ("brand", "ratio", "isolate_model", "steps", "version") if k in d})
-
-    def has(self, op: str) -> bool:
-        return any(s["op"] == op for s in self.steps)
-
-    def without(self, *ops: str) -> "EnhancementRecipe":
-        return replace(self, steps=[s for s in self.steps if s["op"] not in ops])
-
-    def with_ratio(self, ratio: str) -> "EnhancementRecipe":
-        return replace(self, ratio=ratio)
-
-    def apply_to(self, src: Image.Image, brand: Optional[str] = None, cutout: Optional[Cutout] = None) -> Scene:
-        scene = Scene(src=prepare_source(src), brand=brand or self.brand, ratio=self.ratio, cutout=cutout)
-        for st in self.steps:
-            params = dict(st.get("params", {}))
-            if st["op"] == "isolate":
-                params.setdefault("model", self.isolate_model)
-            scene = apply_op(scene, st["op"], params)
-        return scene
-
-
-def master_preset(brand_key: str, ratio: str = "1:1", include_badge: bool = False, model: Optional[str] = None) -> EnhancementRecipe:
-    """The brand's 1-click recipe (badge only if explicitly requested)."""
+# ============================================================================ look = an ordered list of steps
+def preset_steps(brand_key: str, include_badge: bool = False) -> list:
+    """The brand's one-click look as a list of {"op", "params"} steps (badge only when asked for)."""
     steps = [{"op": op, "params": dict(p)} for op, p in BRANDS[brand_key].preset]
     if include_badge:
         steps.append({"op": "badge", "params": {}})
-    return EnhancementRecipe(brand=brand_key, ratio=ratio, isolate_model=model or CONFIG.isolate_model, steps=steps)
+    return steps
 
 
-# ============================================================================ undo / redo session
-@dataclass
-class HistoryEntry:
-    image: Image.Image
-    label: str                                           # the action that was applied AFTER this state
-    scene: Scene
-    steps: list
-
-
-class ImageSession:
-    """One photo with its own non-destructive history. `undo_stack` / `redo_stack` hold PIL images + action labels."""
-
-    def __init__(self, name: str, src: Image.Image, brand: str, ratio: str = "1:1", preview_edge: int = 1100):
-        self.name = name
-        self.preview_edge = preview_edge
-        self.original = prepare_source(src)
-        self.initial = Scene(src=self.original, brand=brand, ratio=ratio)
-        self.scene = self.initial
-        self.steps: list = []
-        self.undo_stack: list[HistoryEntry] = []
-        self.redo_stack: list[HistoryEntry] = []
-        self.before = render(self.initial, preview_edge)
-        self.current = self.before
-        self.cached_cutout: Optional[Cutout] = None
-        self.warnings: list = []
-
-    # -- cached matte, exposed for inspection
-    @property
-    def alpha_matte(self) -> Optional[np.ndarray]:
-        return self.scene.cutout.alpha if self.scene.cutout is not None else None
-
-    def _commit(self, label, new_scene, new_steps):
-        self.undo_stack.append(HistoryEntry(self.current, label, self.scene, self.steps))
-        self.redo_stack.clear()
-        if new_scene.cutout is not None:
-            self.cached_cutout = new_scene.cutout                         # the matte is computed once per photo
-        self.scene, self.steps = new_scene, new_steps
-        self.current = render(new_scene, self.preview_edge)
-        self.warnings = list(CONFIG.warnings)
-        del self.undo_stack[:-25]                                       # bound memory
-
-    def _step(self, scene: Scene, steps: list, op: str, params: dict):
-        """Apply one op to (scene, steps) without rendering; reuses the cached matte and records implicit isolation."""
-        steps = list(steps)
-        if op in MASK_OPS and scene.cutout is None:
-            if self.cached_cutout is not None and not (op == "isolate" and params.get("model") not in (None, self.cached_cutout.model)):
-                scene = replace(scene, cutout=self.cached_cutout)          # reuse the cached matte, no re-extraction
-            if op != "isolate" and not any(s["op"] == "isolate" for s in steps):
-                steps.append({"op": "isolate", "params": {}})              # make the implicit isolation explicit in the recipe
-        scene = apply_op(scene, op, params)
-        if scene.cutout is not None:
-            self.cached_cutout = scene.cutout
-        return scene, steps + [{"op": op, "params": dict(params)}]
-
-    def apply(self, op: str, **params) -> str:
-        scene, steps = self._step(self.scene, self.steps, op, params)
-        label = LABELS.get(op, op)
-        self._commit(label, scene, steps)
-        return label
-
-    def apply_steps(self, steps: list, label: str) -> str:
-        """Apply several ops (e.g. a brand master preset) as ONE undoable action; renders only once."""
-        scene, rec = self.scene, list(self.steps)
-        for st in steps:
-            scene, rec = self._step(scene, rec, st["op"], dict(st.get("params", {})))
-        self._commit(label, scene, rec)
-        return label
-
-    def set_brand(self, brand: str):
-        if brand != self.scene.brand:
-            self._commit(f"Switch brand to {BRANDS[brand].name}", replace(self.scene, brand=brand), self.steps)
-
-    def set_ratio(self, ratio: str):
-        if ratio != self.scene.ratio:
-            self._commit(f"Canvas ratio {ratio}", replace(self.scene, ratio=ratio), self.steps)
-
-    def reset(self) -> str:
-        self._commit("Reset to original", self.initial, [])        # the cached matte stays available for later steps
-        return "Reset to original"
-
-    def undo(self) -> Optional[str]:
-        if not self.undo_stack:
-            return None
-        e = self.undo_stack.pop()
-        self.redo_stack.append(HistoryEntry(self.current, e.label, self.scene, self.steps))
-        self.current, self.scene, self.steps = e.image, e.scene, e.steps
-        return e.label
-
-    def redo(self) -> Optional[str]:
-        if not self.redo_stack:
-            return None
-        e = self.redo_stack.pop()
-        self.undo_stack.append(HistoryEntry(self.current, e.label, self.scene, self.steps))
-        self.current, self.scene, self.steps = e.image, e.scene, e.steps
-        return e.label
-
-    @property
-    def can_undo(self):
-        return bool(self.undo_stack)
-
-    @property
-    def can_redo(self):
-        return bool(self.redo_stack)
-
-    def recipe(self, isolate_model: Optional[str] = None) -> EnhancementRecipe:
-        return EnhancementRecipe(brand=self.scene.brand, ratio=self.scene.ratio,
-                                 isolate_model=isolate_model or (self.scene.cutout.model if self.scene.cutout else CONFIG.isolate_model),
-                                 steps=[dict(s) for s in self.steps])
-
-    def render_full(self, long_edge: int) -> Image.Image:
-        return render(self.scene, long_edge)
-
-
-# ============================================================================ upload-ready export
-@dataclass(frozen=True)
-class ExportProfile:
-    key: str
-    name: str
-    fmt: str                 # JPEG | PNG
-    long_edge: int
-    max_bytes: Optional[int]
-    ratio: str
-    min_edge: int
-    allow_overlays: bool     # badge / border
-
-
-PROFILES = {
-    "swiggy_zomato": ExportProfile("swiggy_zomato", "Swiggy / Zomato upload-ready", "JPEG", 2048, 1_000_000, "1:1", 1000, False),
-    "hires_png": ExportProfile("hires_png", "High-resolution PNG (no size cap)", "PNG", 3072, None, "1:1", 1000, True),
-    "hires_jpg": ExportProfile("hires_jpg", "High-resolution JPEG (q95)", "JPEG", 3072, None, "1:1", 1000, True),
-}
-
-
-def save_image(img: Image.Image, path, profile: ExportProfile) -> dict:
-    """Write the final file. JPEG profiles with a byte cap search quality (then size) until the file fits."""
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.stem + ".tmp" + path.suffix)
-    if profile.fmt == "PNG":
-        img.save(tmp, "PNG", optimize=True)
-    else:
-        if img.mode == "RGBA":
-            bg = Image.new("RGB", img.size, (255, 255, 255))
-            bg.paste(img, mask=img.split()[3])
-            img = bg
-        img = img.convert("RGB")
-        data = None
-        cur = img
-        while data is None:
-            for q in (95, 92, 88, 84, 80, 76, 72):
-                buf = io.BytesIO()
-                cur.save(buf, "JPEG", quality=q, subsampling=0 if q >= 92 else 2, optimize=True)
-                if profile.max_bytes is None or buf.tell() <= profile.max_bytes:
-                    data = buf.getvalue()
-                    break
-            else:
-                cur = cur.resize((int(cur.width * 0.92), int(cur.height * 0.92)), Image.LANCZOS)
-        tmp.write_bytes(data)
-        img = cur
-    os.replace(tmp, path)
-    return {"path": str(path), "bytes": path.stat().st_size, "width": img.width, "height": img.height}
+def apply_look(img: Image.Image, brand_key: str, steps: list, long_edge: int = 1100,
+               cutout_cache: Optional[dict] = None, cache_key=None) -> Image.Image:
+    """Render `img` (already cropped / rotated by the user) with the given look. The dish cut-out is reused from
+    `cutout_cache[cache_key]` when present, so toggling steps in the preview never re-runs background removal."""
+    scene = Scene(src=prepare_source(img), brand=brand_key, ratio="original")
+    if cutout_cache is not None and cache_key in cutout_cache and any(st["op"] in MASK_OPS for st in steps):
+        scene = replace(scene, cutout=cutout_cache[cache_key])
+    for st in steps:
+        scene = apply_op(scene, st["op"], dict(st.get("params", {})))
+    if cutout_cache is not None and scene.cutout is not None:
+        cutout_cache[cache_key] = scene.cutout
+    return render(scene, long_edge)

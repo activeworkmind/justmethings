@@ -50,11 +50,20 @@ def render_image(img: Image.Image, slot: dict, final_edge: int = config.LONG_EDG
     s = final_edge / max(img.size)
     if s < 1:
         img = img.resize((round(img.width * s), round(img.height * s)), Image.LANCZOS)
-    if slot.get("enhance", True):
+    if slot.get("look"):                                      # brand look (studio): background, shadows, light, ...
+        from studio import image_engine as studio
+        return studio.apply_look(img, slot["_brand"], slot["look"], min(final_edge, max(img.size)))   # never upscale
+    if slot.get("enhance", True):                             # plain daylight touch
         bgr = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
         bgr = enhance._sharpen(enhance._daylight(bgr))
         img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
     return img
+
+
+def brand_key(slug: str) -> str:
+    """'biryani-rules' -> 'biryani_rules' (the studio's brand key)."""
+    from studio.brands import BRANDS
+    return next(k for k, b in BRANDS.items() if b.slug == slug)
 
 
 def _export_one(job):
@@ -96,7 +105,7 @@ def run(workers: int = 3) -> dict:
         if s["final_path"] and s["final_path"] != out and os.path.exists(s["final_path"]):
             os.remove(s["final_path"])                                 # renamed: drop the stale file
         src = con.execute("SELECT path FROM files WHERE id=?", (s["photo_id"],)).fetchone()["path"]
-        jobs.append((src, s, out))
+        jobs.append((src, {**s, "_brand": brand_key(it["brand"]) if s["look"] else None}, out))
         keys.append(key)
     errors = []
     with ProcessPoolExecutor(max_workers=workers) as ex:
@@ -104,7 +113,7 @@ def run(workers: int = 3) -> dict:
             if err:
                 errors.append((out, err))
             else:
-                slotstore.mark_exported(key, out, job[1]["enhance"])
+                slotstore.mark_exported(key, out, bool(job[1]["enhance"] or job[1]["look"]))
     rejected = sum(1 for s in state.values() if s["status"] == "rejected")
     return {"exported_now": len(jobs) - len(errors), "unchanged": skipped, "removed": removed,
             "rejected": rejected, "errors": errors}

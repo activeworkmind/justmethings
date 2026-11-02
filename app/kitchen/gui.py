@@ -48,6 +48,7 @@ class App:
         self._build_keys()
         self.cache_base = {}
         self.exporting = False
+        self._cutouts = {}                                  # dish cut-outs for the Look preview (per crop)
         self._scale_busy = False
         self._tilting = False
         self._tilt_job = None
@@ -86,7 +87,9 @@ class App:
         self.enh_var = tk.BooleanVar(value=True)
         tk.Checkbutton(bar, text="Enhance (E)", variable=self.enh_var, bg=BG, fg="white",
                        selectcolor="#333", activebackground=BG, activeforeground="white",
-                       command=self.commit).pack(side="left", padx=14)
+                       command=self.commit).pack(side="left", padx=(14, 4))
+        self.look_var = tk.StringVar(value="Look...")
+        tk.Button(bar, textvariable=self.look_var, command=self.edit_look, padx=8).pack(side="left", padx=(0, 10))
         self.goto_var = tk.StringVar()
         tk.Label(bar, text="Go to item:", bg=BG, fg="white").pack(side="left", padx=(14, 2))
         g = tk.Entry(bar, textvariable=self.goto_var, width=8)
@@ -183,7 +186,7 @@ class App:
         pick = next(p for p in self.sel[iid] if p.get("rank") == int(rank))
         it = self.items[iid]
         return {"photo_id": pick["photo_id"], "rot": 0, "tilt": 0.0, "crop": None,
-                "enhance": True, "aspect": "free", "status": "pending", "exported": False,
+                "enhance": True, "look": [], "aspect": "free", "status": "pending", "exported": False,
                 "exported_enhanced": False, "final_path": None,
                 "name": f"{iid}_{it['slug']}_{rank}"}
 
@@ -195,6 +198,8 @@ class App:
         self.title_var.set(f"{it['item_name']}   -   {it['brand']} / {it['category']}")
         self.name_var.set(self.slot["name"])
         self.enh_var.set(self.slot["enhance"])
+        n = len(self.slot.get("look") or [])
+        self.look_var.set(f"Look: {n} steps" if n else "Look...")
         self.aspect = self.slot["aspect"]
         self._set_scale(self.slot["tilt"])
         self.load_photo(reset_crop=self.slot["crop"] is None)
@@ -220,6 +225,8 @@ class App:
         iw, ih = self.disp.size
         self.slot["crop"] = [self.c[0] / iw, self.c[1] / ih, self.c[2] / iw, self.c[3] / ih]
         self.slot["enhance"] = bool(self.enh_var.get())
+        n = len(self.slot.get("look") or [])
+        self.look_var.set(f"Look: {n} steps" if n else "Look...")
         self.slot["aspect"] = self.aspect
         name = re.sub(r"[^A-Za-z0-9_\-]+", "-", self.name_var.get().strip().removesuffix(".jpg")).strip("-")
         if name:
@@ -372,9 +379,36 @@ class App:
                 return
         messagebox.showinfo("Go to", f"No item id starting with '{q}'")
 
+    # ---------- studio look (brand background, shadows, light ...) ----------
+    def _brand_key(self) -> str:
+        return finalize.brand_key(self.items[self.key.split(":")[0]]["brand"])
+
+    def _look_preview(self, steps):
+        """Cropped photo + the ticked steps. The dish cut-out is cached per crop, so re-previews are quick."""
+        from studio import image_engine as studio
+        cropped = finalize.render_image(self.base, {**self.slot, "look": [], "enhance": False}, 1100)
+        key = (self.slot["photo_id"], tuple(round(v, 3) for v in self.slot["crop"]), self.slot["rot"], self.slot["tilt"])
+        return studio.apply_look(cropped, self._brand_key(), steps, 1000, self._cutouts, key)
+
+    def edit_look(self):
+        from .lookdialog import LookDialog
+        self.commit()
+        it = self.items[self.key.split(":")[0]]
+        dlg = LookDialog(self.root, it["brand"].replace("-", " ").title(), self._brand_key(),
+                         self.slot.get("look") or [], self._look_preview)
+        self.root.wait_window(dlg)
+        if dlg.result is not None:
+            self.slot["look"] = dlg.result
+            self.commit()
+
     def preview(self):
         self.commit()
-        img = finalize.render_image(self.base, self.slot, final_edge=1000)
+        self.root.config(cursor="watch")
+        self.root.update_idletasks()
+        try:
+            img = finalize.render_image(self.base, {**self.slot, "_brand": self._brand_key()}, final_edge=1000)
+        finally:
+            self.root.config(cursor="")
         win = tk.Toplevel(self.root)
         win.title("Preview of final result (Esc to close)")
         tkimg = ImageTk.PhotoImage(img)
