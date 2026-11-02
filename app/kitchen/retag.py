@@ -79,6 +79,14 @@ def apply() -> dict:
             con.backup(dst)                                           # consistent copy even while WAL is active
         old = slotstore.load_all()
         select.run(con, scope=rem)
+    res = migrate_slots(old)
+    res["backup"] = str(bk)
+    return res
+
+
+def migrate_slots(old: dict) -> dict:
+    """After a re-selection: move every saved decision (approve / reject, crop, look, custom name) to the slot where
+    its photo now lives, correct the initials of its name, and keep the saved file of every slot that did not change."""
     new_sel = json.loads(config.SELECTION.read_text(encoding="utf-8"))
     where = defaultdict(list)
     for item, ps in new_sel.items():
@@ -106,12 +114,15 @@ def apply() -> dict:
     with closing(db.connect()) as c:
         c.execute("DELETE FROM slots WHERE status!='deleted'")        # deleted ranks / exclusions are kept as they are
         c.commit()
+    keep = {o for o, n, _, a, b in moved if o == n and a == b}       # same slot, same name: its saved file is still right
     for k, s in rows.items():
         slotstore.save(k, s)
-    for s in old.values():                                            # files exported under the old names are stale now
-        if s.get("final_path") and s["status"] != "deleted":
+        if k in keep:
+            slotstore.restore_export(k, old[k])
+    for key, s in old.items():                                        # files saved under the old slot / name are stale now
+        if s.get("final_path") and s["status"] != "deleted" and key not in keep:
             try:
                 os.remove(s["final_path"])
             except OSError:
                 pass                                                  # already gone
-    return {"backup": str(bk), "moved": moved, "dropped": dropped, "kept_as_is": sum(1 for m in moved if m[0] == m[1])}
+    return {"moved": moved, "dropped": dropped, "kept_as_is": sum(1 for m in moved if m[0] == m[1])}

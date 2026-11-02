@@ -16,7 +16,8 @@ import cv2
 import numpy as np
 from PIL import Image, ImageTk
 
-from . import catalog, config, db, enhance, finalize, select, slotstore
+from . import catalog, config, db, enhance, finalize, rebrand, select, slotstore
+from .rebrand import BRAND_NAMES as BRAND_TITLE
 from .saver import Saver
 from .sync import Syncer
 
@@ -25,6 +26,9 @@ HANDLE = 14
 MIN_PX = 60
 TILT_MAX = 15.0
 BG = "#1b1b1b"
+TAGS = [("biryani-rules", "Biryani Rules", "green leaf mat", "#2f6b3a"),
+        ("sunday-biryani", "The Sunday Biryani", "royal swirl mat", "#8a6d1f"),
+        ("day-meal", "The Day Meal", "plain cloth", "#6f6a58")]
 HELP = ("Enter/Space = approve + SAVE the photo to final_output + next  |  <- -> = prev/next  |  X = reject (kept, marked)  |  "
         "Del = DELETE (removes from list + folders)  |  R / Shift+R = rotate 90  |  "
         "TILT: slider, or , . = 0.5 deg, < > = 0.1 deg, 0 = reset, L = auto-level, G = level grid  |  "
@@ -78,6 +82,18 @@ class App:
         self.title_var, self.info_var = tk.StringVar(), tk.StringVar()
         tk.Label(r, textvariable=self.title_var, bg=BG, fg="white",
                  font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x", padx=10, pady=(8, 0))
+        # brand tags: the brand is told by the cloth the dish is on; click a tag to move the photo to that brand
+        tagbar = tk.Frame(r, bg=BG)
+        tagbar.pack(fill="x", padx=10, pady=(4, 2))
+        tk.Label(tagbar, text="Brand tag:", bg=BG, fg="#aaa", font=("Segoe UI", 10)).pack(side="left", padx=(0, 6))
+        self.tag_buttons = {}
+        for slug, label, mat, colour in TAGS:
+            b = tk.Button(tagbar, text=f"{label}   ({mat})", bg=colour, fg="white", activebackground=colour,
+                          activeforeground="white", padx=10, command=lambda s=slug: self.rebrand_to(s))
+            b.pack(side="left", padx=3)
+            self.tag_buttons[slug] = b
+        tk.Label(tagbar, text="wrong brand on the file? click the right tag - it renames the photo (BR- / SB- / DM-)",
+                 bg=BG, fg="#777", font=("Segoe UI", 9)).pack(side="left", padx=10)
         tk.Label(r, textvariable=self.info_var, bg=BG, fg="#aaa",
                  font=("Segoe UI", 10), anchor="w").pack(fill="x", padx=10)
         self.canvas = tk.Canvas(r, bg="#2b2b2b", highlightthickness=0)
@@ -190,6 +206,72 @@ class App:
         busy = self.saver.busy
         self.save_var.set(f"Saving {busy}..." if busy else self._save_msg)
 
+    # ---------- brand tags ----------
+    def refresh_tags(self, current: str):
+        """Highlight the tag of the photo's current brand."""
+        for slug, b in self.tag_buttons.items():
+            on = slug == current
+            b.config(relief="sunken" if on else "raised", font=("Segoe UI", 10, "bold" if on else "normal"),
+                     bd=4 if on else 1)
+
+    def _pick_item(self, brand_slug: str):
+        """The dish is not on that brand's menu under the same name: let the user pick one from its menu."""
+        menu = rebrand.menu_of(brand_slug)
+        win = tk.Toplevel(self.root)
+        win.title(f"Pick the dish on {BRAND_TITLE[brand_slug]}'s menu")
+        win.configure(bg=BG)
+        win.transient(self.root)
+        win.grab_set()
+        tk.Label(win, text="This dish is not on that brand's menu. Pick the one it is:", bg=BG, fg="white").pack(padx=12, pady=8)
+        box = tk.Listbox(win, width=70, height=22, font=("Consolas", 10))
+        box.pack(padx=12)
+        for i in menu:
+            box.insert("end", f"{i['item_id']}   {i['category']:<30} {i['item_name']}")
+        chosen = []
+        pick = lambda *_: (chosen.append(menu[box.curselection()[0]]), win.destroy()) if box.curselection() else None
+        box.bind("<Double-Button-1>", pick)
+        row = tk.Frame(win, bg=BG)
+        row.pack(pady=8)
+        tk.Button(row, text="OK", command=pick, padx=14).pack(side="left", padx=4)
+        tk.Button(row, text="Cancel", command=win.destroy, padx=10).pack(side="left", padx=4)
+        self.root.wait_window(win)
+        return chosen[0] if chosen else None
+
+    def rebrand_to(self, brand_slug: str):
+        """Brand tag clicked: move this photo to the same dish of that brand and rename it."""
+        it = self.items[self.key.split(":")[0]]
+        if it["brand"] == brand_slug:
+            return
+        found = rebrand.equivalents(it["item_id"], brand_slug)
+        target = found[0] if found else self._pick_item(brand_slug)
+        if target is None:
+            return
+        self.commit()
+        photo, old_key = self.slot["photo_id"], self.key
+        self.root.config(cursor="watch")
+        self.root.update_idletasks()
+        try:
+            res = rebrand.assign(photo, target["item_id"])
+        finally:
+            self.root.config(cursor="")
+        self.state = slotstore.load_all()
+        self.sel = json.loads(config.SELECTION.read_text(encoding="utf-8"))
+        self._build_keys()
+        new_key = next((k for k in self.keys if self.state.get(k, {}).get("photo_id") == photo), None)
+        if new_key is None:                                  # the dish already had 3 better photos
+            messagebox.showwarning("Brand tag", f"{target['item_name']} ({BRAND_TITLE[brand_slug]}) already has its photos - "
+                                                "this one was not added. Click the old tag to move it back.")
+            self.idx = min(self.idx, len(self.keys) - 1)
+        else:
+            self.idx = self.keys.index(new_key)
+        self.load_slot()
+        for k, s in self.state.items():                      # anything that moved is saved again under its new name
+            if s["status"] == "approved" and not s["exported"]:
+                self.saver.submit(k)
+        self.sync.mark_dirty()
+        old_name = next((m[3] for m in res["moved"] if m[0] == old_key), "")
+        self._save_msg = f"Moved to {BRAND_TITLE[brand_slug]}: {old_name or old_key}  =>  {self.slot['name']}"
+
     def open_folder(self):
         config.FINAL.mkdir(parents=True, exist_ok=True)
         os.startfile(config.FINAL)                           # Windows Explorer
@@ -240,7 +322,8 @@ class App:
         self.slot = self.state.setdefault(self.key, self.default_slot(self.key))
         iid, rank = self.key.split(":")
         it = self.items[iid]
-        self.title_var.set(f"{it['item_name']}   -   {it['brand']} / {it['category']}")
+        self.title_var.set(f"[{BRAND_TITLE[it['brand']]}]   {it['item_name']}   -   {it['category']}")
+        self.refresh_tags(it["brand"])
         self.name_var.set(self.slot["name"])
         self.enh_var.set(self.slot["enhance"])
         n = len(self.slot.get("look") or [])

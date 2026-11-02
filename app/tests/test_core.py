@@ -144,6 +144,46 @@ def test_approving_saves_the_final_file_and_keeps_it_in_step(tmp_db, tmp_path, m
     assert not slotstore.load_all()["BR-001:1"]["exported"]
 
 
+def test_brand_tag_finds_the_same_dish_in_another_brand():
+    from kitchen import rebrand
+    assert [i["item_id"] for i in rebrand.equivalents("BR-001", "sunday-biryani")] == ["SB-010"]
+    assert [i["item_id"] for i in rebrand.equivalents("SB-021", "day-meal")] == ["DM-070"]       # gulab jamun
+    assert rebrand.equivalents("BR-011", "day-meal") == []                                       # no manchurian at Day Meal
+    assert {i["brand"] for i in rebrand.menu_of("day-meal")} == {"day-meal"}
+    assert "DM-015" not in {i["item_id"] for i in rebrand.menu_of("day-meal")}                    # not cooked yet
+
+
+def test_moving_slots_keeps_unchanged_files_and_replaces_the_rest(tmp_db, tmp_path, monkeypatch):
+    import json as _json
+    from kitchen import retag
+    sel = tmp_path / "selection.json"
+    monkeypatch.setattr(config, "SELECTION", sel)
+    # after the brand tag: p1 now lives under SB-012, p2 moved up to rank 1 of BR-003, p3 did not move
+    pick = lambda pid, rank: {"photo_id": pid, "rank": rank, "file": "x", "score": 1, "group": "g", "confidence": "H"}
+    sel.write_text(_json.dumps({"SB-012": [pick("p1", 1)], "BR-003": [pick("p2", 1)], "BR-004": [pick("p3", 1)]}))
+    files = {}
+    for name in ("f1", "f2", "f3"):
+        files[name] = tmp_path / f"{name}.jpg"
+        files[name].write_bytes(b"x")
+    base = {"status": "approved", "rot": 0, "tilt": 0.0, "crop": [0, 0, 1, 1], "aspect": "free", "enhance": True}
+    old_specs = {"BR-003:1": ("p1", "BR-003_paneer-nawabi-biryani_1", "f1"),
+                 "BR-003:2": ("p2", "BR-003_paneer-nawabi-biryani_2", "f2"),
+                 "BR-004:1": ("p3", "BR-004_chef-special-veg-biryani_1", "f3")}
+    for key, (pid, name, f) in old_specs.items():
+        slotstore.save(key, {**base, "photo_id": pid, "name": name})
+        slotstore.mark_exported(key, str(files[f]), enhanced=True)
+    res = retag.migrate_slots(slotstore.load_all())
+
+    now = slotstore.load_all()
+    assert sorted(now) == ["BR-003:1", "BR-004:1", "SB-012:1"]
+    assert now["SB-012:1"]["photo_id"] == "p1" and now["SB-012:1"]["name"] == "SB-012_paneer-biryani_1"   # initials fixed
+    assert now["BR-003:1"]["photo_id"] == "p2" and now["BR-003:1"]["name"] == "BR-003_paneer-nawabi-biryani_1"
+    assert not now["SB-012:1"]["exported"] and not now["BR-003:1"]["exported"]                           # will be saved again
+    assert not files["f1"].exists() and not files["f2"].exists()                                         # stale files removed
+    assert now["BR-004:1"]["exported"] and files["f3"].exists()                                          # untouched slot kept as is
+    assert res["dropped"] == []
+
+
 def test_db_dump_and_restore(tmp_db, tmp_path):
     slotstore.save("BR-001:1", {"photo_id": "abc", "status": "pending", "name": "n", "rot": 0, "tilt": 0.0,
                                 "crop": None, "aspect": "free", "enhance": True})

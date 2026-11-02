@@ -73,6 +73,14 @@ def mark_exported(key: str, path: str, enhanced: bool, valid: bool = True) -> No
         con.commit()
 
 
+def restore_export(key: str, old: dict) -> None:
+    """Keep the saved-file record of a slot that was re-created with an identical decision."""
+    with closing(db.connect()) as con:
+        con.execute("UPDATE slots SET exported=?,exported_enhanced=?,final_path=? WHERE slot_key=?",
+                    (int(old["exported"]), int(old["exported_enhanced"]), old["final_path"], key))
+        con.commit()
+
+
 def clear_export(key: str) -> None:
     with closing(db.connect()) as con:
         con.execute("UPDATE slots SET exported=0,exported_enhanced=0,final_path=NULL,exported_at=NULL "

@@ -43,14 +43,19 @@ def run(con, scope: Optional[set] = None) -> dict:
     index, grps = groups.photo_index(), groups.load()
     rows = {r["id"]: r for r in con.execute("SELECT * FROM files WHERE status='downscaled'")}
     quality = _quality(list(rows.values()))
+    manual = {r["photo_id"]: r["item_id"] for r in con.execute("SELECT photo_id,item_id FROM photo_items")}
     cand = {}                                           # item_id -> {group_id -> [(score, photo_id, conf)]}
     for g in grps:
         for item in groups.expand(g["items"], g["mat"]):
             for n in range(g["n_from"], g["n_to"] + 1):
                 pid = index.get(n)
-                if pid in rows and (scope is None or pid in scope):
+                if pid in rows and pid not in manual and (scope is None or pid in scope):
                     score = groups.WEIGHT[g["confidence"]] * (0.5 + 0.5 * quality[pid])
                     cand.setdefault(item, {}).setdefault(g["group_id"], []).append((score, pid, g["confidence"]))
+    active = {it["item_id"] for it in catalog.active()}
+    for pid, item in manual.items():                    # your brand tag wins over the group labels: ranked first
+        if item in active and pid in rows and (scope is None or pid in scope):
+            cand.setdefault(item, {}).setdefault("tag", []).append((10 + quality[pid], pid, "C"))
     pins, items = _pins(), catalog.load()
     excluded = {(r["item_id"], r["photo_id"]) for r in con.execute("SELECT item_id,photo_id FROM excluded")}
     deleted_ranks = {}

@@ -628,6 +628,11 @@ INSERT INTO "files" VALUES('cb5739a2a0','E:\JustMeThings\assets\IMG_9133.DNG','i
 INSERT INTO "files" VALUES('dc7d5c3e95','E:\JustMeThings\assets\IMG_9134.DNG','image',61999708,'downscaled','E:\JustMeThings\work\downscaled\IMG_9134__dc7d5c3e95.jpg',429116,2048,1536,4.506269958826144375e+02,0.530760222790288,'85ed1a92766d4d38',NULL,1793611172.0);
 INSERT INTO "files" VALUES('7e6e57681f','E:\JustMeThings\assets\IMG_9135.DNG','image',61534939,'downscaled','E:\JustMeThings\work\downscaled\IMG_9135__7e6e57681f.jpg',421594,2048,1536,4.513962760516959066e+02,5.288618100234886432e-01,'85ed1a92766d4d38',NULL,1793611172.0);
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE photo_items (
+    photo_id TEXT PRIMARY KEY,
+    item_id  TEXT NOT NULL,
+    set_at   REAL
+);
 CREATE TABLE slots (
     slot_key   TEXT PRIMARY KEY,          -- 'BR-001:1'
     item_id    TEXT NOT NULL,
@@ -660,7 +665,7 @@ INSERT INTO "slots" VALUES('BR-004:1','BR-004',1,'d1be002bc5','approved','BR-004
 INSERT INTO "slots" VALUES('SB-013:1','SB-013',1,'d5dd72b412','approved','SB-013_kaju-paneer-biryani_1',0,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793637929942982673e+09,1,1,'E:\JustMeThings\final_output\sunday-biryani\veg-paneer-dum-biryanis\SB-013_kaju-paneer-biryani_1.jpg',1.793638936771188975e+09,NULL);
 INSERT INTO "slots" VALUES('SB-015:1','SB-015',1,'3552d43148','approved','SB-015_hyderabadi-veg-dum-biryani_1',3,0.0,'[0.0, 0.0, 1.0, 1.0]','free',1,1.793637929943978071e+09,1,1,'E:\JustMeThings\final_output\sunday-biryani\veg-paneer-dum-biryanis\SB-015_hyderabadi-veg-dum-biryani_1.jpg',1.793638936772206069e+09,NULL);
 INSERT INTO "slots" VALUES('BR-006:1','BR-006',1,'3fc8e093d9','pending','BR-006_hyderabadi-veg-dum-biryani_1',3,0.0,'[0.0, 0.0, 1.0, 1.0]','free',1,1.793637929944977521e+09,0,0,NULL,NULL,NULL);
-INSERT INTO "slots" VALUES('BR-004:2','BR-004',2,'c35231b65d','pending','BR-004_chef-s-hukum-veg-biryani_2',3,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.79363861235882926e+09,0,0,NULL,NULL,NULL);
+INSERT INTO "slots" VALUES('BR-004:2','BR-004',2,'c35231b65d','pending','BR-004_chef-s-hukum-veg-biryani_2',3,0.0,'[0.03, 0.03, 0.97, 0.97]','free',1,1.793638990323525428e+09,0,0,NULL,NULL,NULL);
 CREATE TABLE uploads (
     path        TEXT PRIMARY KEY,
     item_id     TEXT,                 -- parsed from the file name prefix (BR-001_...), when present

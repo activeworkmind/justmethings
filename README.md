@@ -46,6 +46,20 @@ green status in the bottom bar tells you when it is written ("Saved ... KB"). Ch
 it and the file follows: replaced, renamed or removed. Anything approved earlier but not yet written is saved when the
 app starts, and closing the window waits for pending saves. "Open final_output folder" shows the result.
 
+**Which brand is a photo? - the cloth tells.** The three brands were shot on different mats:
+
+| Mat the food is served on | Brand | File initials |
+|---|---|---|
+| Linen mat with embroidered **green leaves** | Biryani Rules | `BR-` |
+| Beige mat with a **royal gold swirl** pattern (ornate plate) | The Sunday Biryani | `SB-` |
+| **Plain cloth**, no design | The Day Meal | `DM-` |
+
+**Brand tags.** The three coloured tags under the title show the photo's brand (the highlighted one) with its mat hint.
+If a photo carries the wrong brand, click the right tag: the photo moves to the *same dish* of that brand (a dish the
+brand does not sell opens a picker with its menu), the file is renamed (initials + rank), the saved file in `final_output/`
+is replaced, and your crop / look / approval travel with it. Click the old tag to undo. Under the hood this is stored
+per photo (`photo_items`), so it survives re-selection; the mat of each photo group is in `labels/photo_groups.csv`.
+
 **Look... (brand styling)** - per photo, optional. One small dialog with a checkbox per enhancement: brand table
 background (Biryani Rules = dark rosewood, Sunday Biryani = festive teak, Day Meal = airy wood + jute), grounded
 shadows, natural sunlight, rim / candlelight glow, straighten & frame, masala colour pop, steam, background blur,

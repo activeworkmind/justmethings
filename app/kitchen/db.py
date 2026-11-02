@@ -28,6 +28,13 @@ CREATE INDEX IF NOT EXISTS idx_files_status ON files(kind, status);
 -- small key/value store (e.g. which Excel corrections were already applied)
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 
+-- manual brand tag: "this photo is this dish (of this brand)" - overrides the photo-group labels for that photo
+CREATE TABLE IF NOT EXISTS photo_items (
+    photo_id TEXT PRIMARY KEY,
+    item_id  TEXT NOT NULL,
+    set_at   REAL
+);
+
 -- photos the user deleted for a dish: never suggested again for that item
 CREATE TABLE IF NOT EXISTS excluded (
     item_id    TEXT NOT NULL,
